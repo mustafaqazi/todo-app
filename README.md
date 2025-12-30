@@ -39,6 +39,8 @@ A beginner-friendly, in-memory Python console TODO application with simple CRUD 
 
 ### Starting the Application
 
+**Important**: Always run these commands from the **repository root**, not from the `src/` directory.
+
 ```bash
 uv run src/main.py
 ```
@@ -47,6 +49,13 @@ Or directly with Python:
 
 ```bash
 python -m src.main
+```
+
+**Example**:
+```bash
+cd /path/to/todo-app          # Navigate to repo root
+uv run src/main.py            # Correct ✅
+# NOT: cd src && uv run main.py  (this will fail) ❌
 ```
 
 ### Available Commands

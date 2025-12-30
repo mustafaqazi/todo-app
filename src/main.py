@@ -4,7 +4,10 @@ This module contains the main command loop, input handling, and user interface.
 All business logic is delegated to todo_manager.py functions.
 """
 
-from src import todo_manager
+try:
+    from src import todo_manager
+except ImportError:
+    import todo_manager
 
 
 def _parse_task_id(task_id_str: str) -> int | None:
