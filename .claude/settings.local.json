@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(claude mcp add:*)"
+      "Bash(claude mcp add:*)",
+      "Bash(git fetch:*)",
+      "Bash(pwsh -Command \"./.specify/scripts/powershell/create-new-feature.ps1 -Json -Number 1 -ShortName ''todo-console-app'' ''Phase I: Todo In-Memory Python Console App''\")",
+      "Bash(git checkout:*)",
+      "Bash(cat:*)",
+      "Bash(tree:*)",
+      "Bash(pwsh -Command \"./.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly\")",
+      "Bash(powershell -Command \".\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1 -Json -PathsOnly\")",
+      "Bash(powershell -Command \".\\\\.specify\\\\scripts\\\\bash\\\\create-phr.sh --title ''Clarify spec Phase I todo'' --stage spec --feature 1-todo-console-app --json 2>&1\")",
+      "Bash(powershell -Command:*)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(git add:*)"
     ]
   }
 }

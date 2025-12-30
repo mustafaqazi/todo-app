@@ -1,0 +1,16 @@
+[project]
+name = "todo-console-app"
+version = "0.1.0"
+description = "Phase I - Todo In-Memory Python Console Application"
+authors = [{name = "Claude Code", email = "noreply@anthropic.com"}]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv]
+python-version = "3.13"
+dev-dependencies = []
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
