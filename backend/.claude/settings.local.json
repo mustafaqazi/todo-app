@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \".\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks\")",
+      "Bash(test:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 10 python -m uvicorn:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXItMTIzIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzY3ODA0MzM4LCJleHAiOjE3Njc4MDc5Mzh9.4olQcStlAZCM-C1n-pTfbQqg8r2EgMYWk3Py7ysT38U\")",
+      "Bash(__NEW_LINE__ echo \"=== Test 1: Create a Task ===\")",
+      "Bash(python -m json.tool:*)",
+      "Bash(__NEW_LINE__ echo -e \"\\\\n=== Test 2: List Tasks ===\")",
+      "Bash(__NEW_LINE__ echo \"Testing Backend API Integration\")",
+      "Bash(__NEW_LINE__ echo)",
+      "Bash(__NEW_LINE__ echo \"Testing Backend API Endpoints\")",
+      "Bash(__NEW_LINE__ echo \"Test 1: Create a Task \\(POST /api/tasks\\)\")",
+      "Bash(for i in 1 2 3 4 5 6)",
+      "Bash(do)",
+      "Bash(if curl -s http://localhost:8000/openapi.json)",
+      "Bash(then)",
+      "Bash(break)",
+      "Bash(fi)",
+      "Bash(echo:*)",
+      "Bash(done)"
+    ]
+  }
+}
