@@ -13,7 +13,29 @@
       "Bash(powershell -Command:*)",
       "Bash(dir:*)",
       "Bash(python:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(.specify/scripts/bash/create-phr.sh:*)",
+      "Bash(pwsh:*)",
+      "Bash(ls:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(python3:*)",
+      "Bash(rm:*)",
+      "Bash(powershell:*)",
+      "Bash(mkdir:*)",
+      "Bash(wc:*)",
+      "Skill(sp.phr)",
+      "Bash(git config:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(timeout 10 bash:*)",
+      "Bash(curl:*)",
+      "Bash(bash -c 'for i in {1..10}; do curl -s http://127.0.0.1:8000/health && break || \\(echo \"\"Attempt $i: waiting...\"\"; sleep 1\\); done')",
+      "Bash(bash:*)",
+      "Bash(test:*)",
+      "Bash(git -C \"E:\\\\GH-Q4\\\\todo-app-Phase2\" rev-parse --abbrev-ref HEAD)",
+      "Bash(git -C \"E:\\\\GH-Q4\\\\todo-app-Phase2\" config user.name)",
+      "Skill(sp.plan)",
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)"
     ]
   }
 }

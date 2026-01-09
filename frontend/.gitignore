@@ -1,0 +1,38 @@
+# Environment variables
+.env.local
+.env.*.local
+.env
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+yarn.lock
+package-lock.json
+
+# Next.js
+.next
+out
+dist
+build
+*.tsbuildinfo
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Testing
+.coverage
+.pytest_cache
+*.lcov
+
+# Misc
+.cache
+.vercel

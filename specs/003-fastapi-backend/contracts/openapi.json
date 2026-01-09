@@ -1,0 +1,445 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Todo API",
+    "description": "Secure FastAPI backend with JWT authentication and PostgreSQL persistence",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.yourdomain.com",
+      "description": "Production server (placeholder)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token with user_id claim from Better Auth"
+      }
+    },
+    "schemas": {
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "user_id": {
+            "type": "string",
+            "example": "user123"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Buy groceries"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000,
+            "example": "milk, eggs, bread"
+          },
+          "completed": {
+            "type": "boolean",
+            "example": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-08T10:30:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-08T10:30:00Z"
+          }
+        },
+        "required": ["id", "user_id", "title", "completed", "created_at", "updated_at"]
+      },
+      "TaskCreate": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Buy groceries"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000,
+            "example": "milk, eggs, bread"
+          }
+        },
+        "required": ["title"]
+      },
+      "TaskUpdate": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Buy groceries (ASAP)"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000,
+            "example": "milk, eggs, bread, butter"
+          }
+        },
+        "required": ["title"]
+      },
+      "HTTPError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Invalid authentication credentials"
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "loc": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "msg": {
+                  "type": "string"
+                },
+                "input": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/tasks": {
+      "get": {
+        "summary": "List all user's tasks",
+        "operationId": "list_tasks",
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter tasks by completion status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "pending", "completed"],
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user's tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new task",
+        "operationId": "create_task",
+        "tags": ["Tasks"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error - invalid title or description",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "summary": "Get a specific task",
+        "operationId": "get_task",
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found or not owned by user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a task",
+        "operationId": "update_task",
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found or not owned by user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error - invalid title or description",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a task",
+        "operationId": "delete_task",
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Task deleted successfully (empty body)"
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found or not owned by user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/complete": {
+      "patch": {
+        "summary": "Toggle task completion status",
+        "operationId": "toggle_task_completion",
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task completion toggled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found or not owned by user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

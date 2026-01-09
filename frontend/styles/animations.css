@@ -1,0 +1,281 @@
+/* Custom animation keyframes for premium UI */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tailwind animation utilities */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.3s ease-in-out;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.animate-slide-out-down {
+  animation: slideOutDown 0.3s ease-in;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slide-out-right {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-scale-out {
+  animation: scaleOut 0.3s ease-in;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Transition utilities */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.transition-fast {
+  transition-duration: 150ms;
+}
+
+.transition-slow {
+  transition-duration: 500ms;
+}
+
+/* Loading spinner */
+.loader {
+  border: 3px solid var(--bg-tertiary);
+  border-top: 3px solid var(--accent-primary);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+}
+
+/* Backdrop blur for modals */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur {
+  backdrop-filter: blur(12px);
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(20px);
+}
+
+/* Smooth height transition for expand/collapse */
+.transition-max-height {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.transition-max-height.expanded {
+  max-height: 1000px;
+}
+
+/* Stagger animation for list items */
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-list > * {
+  animation: staggerFadeIn 0.3s ease-out forwards;
+}
+
+.stagger-list > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.stagger-list > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.stagger-list > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.stagger-list > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+
+.stagger-list > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+
+.stagger-list > *:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.dark .hover-lift:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+/* Text gradient effect */
+.bg-gradient-text {
+  background: linear-gradient(135deg, #10b981 0%, #0d9488 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

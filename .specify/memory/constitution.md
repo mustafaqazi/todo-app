@@ -1,187 +1,421 @@
-# Python TODO Application Constitution
+# Phase II Todo Full-Stack Web Application Constitution
 
-<!-- Specification Constitution for a basic in-memory TODO console app in Python 3.13+ -->
+> **Purpose**: Establish non-negotiable principles and standards for Phase II development: transforming a Phase I console TODO app into a persistent, multi-user web application with proper authentication, data isolation, and spec-driven architecture.
 
 ## Core Principles
 
-### I. Simplicity and Minimalism
+### I. Spec-Driven Development (NON-NEGOTIABLE)
 
-Every implementation decision prioritizes simplicity: in-memory storage only (no database),
-standard library exclusively (no external dependencies except UV for project management),
-and straightforward data structures (task list of dictionaries). Code must avoid unnecessary
-abstractions—dictionaries suffice; no classes unless functionally required. This principle
-ensures the codebase remains beginner-friendly and maintainable.
+All code is generated from specifications, never written manually. Specifications are the source of truth. Every feature, API endpoint, database table, and UI component must have a dedicated spec file before implementation begins.
 
-**Rationale**: Reduces cognitive load, minimizes security surface, and aligns with educational
-goals. Complex abstractions introduce maintenance burden without proportional benefit.
+**Non-negotiable rules**:
+- Every feature/API/database/UI change requires a spec in `/specs/`
+- No code generation without approved specification
+- Specs are written before any implementation (TDD applies to specs too)
+- All work is traceable: specification → plan → tasks → implementation → tests
+- Hackathon judges review spec history as proof of systematic development
 
-### II. Modular Code Organization
+### II. Strict User Isolation (Security-Critical)
 
-Code is organized into two distinct modules: `todo_manager.py` handles core task logic
-(CRUD operations, validation), and `main.py` provides the CLI interface and command loop.
-Each module has a single responsibility; functions are small and testable in isolation.
-No cross-file duplication; common operations are factored into dedicated functions.
+Each user sees and modifies ONLY their own tasks. No data leakage, no cross-user access.
 
-**Rationale**: Separation of concerns enables independent testing, easier debugging, and
-clear responsibility boundaries. Teams can work on different modules without interference.
+**Non-negotiable rules**:
+- Every database query MUST filter by `user_id` from authenticated JWT token
+- No endpoint may return or modify another user's data
+- All API responses filtered before transmission
+- Tests MUST include cross-user attack scenarios
+- Violation is a critical security breach; must be caught and fixed immediately
 
-### III. Type Safety and Clean Code
+### III. JWT-Based Stateless Authentication
 
-All functions include type hints (e.g., `def add_task(tasks: list[dict], title: str) -> None`).
-Code follows PEP 8: 4-space indentation, 79-character line limit, snake_case naming.
-Variables and functions use meaningful names—no abbreviations (use `task_id`, not `tid`).
-Docstrings required for all functions; comments only for non-obvious logic.
-Error handling raises `ValueError` for invalid inputs with user-friendly messages.
+Authentication via JWT tokens with shared `BETTER_AUTH_SECRET` environment variable. No session storage; verification at every request.
 
-**Rationale**: Type hints enable static analysis and catch bugs early. PEP 8 compliance
-ensures consistency across the Python ecosystem. Meaningful names and docstrings reduce
-onboarding time and support long-term maintainability.
+**Non-negotiable rules**:
+- All API endpoints require `Authorization: Bearer <token>` header
+- Backend extracts `user_id` from JWT and uses for all query filtering
+- Frontend attaches JWT automatically via centralized API client (`/lib/api.ts`)
+- 401 Unauthorized for missing/invalid/expired tokens
+- Better Auth manages user table; backend does NOT manage users
+- Shared secret identical on frontend and backend
 
-### IV. Validated User Input and Error Handling
+### IV. Technology Stack Fidelity (No Deviations)
 
-All user inputs are validated at entry points: required fields checked (non-empty title),
-existing IDs verified before update/delete operations, and command format validated.
-Invalid input raises `ValueError` with descriptive messages printed to the user.
-Edge cases (empty task list, invalid IDs, duplicate operations) are handled explicitly.
+Stack is fixed and non-negotiable. Adding dependencies requires explicit constitutional amendment.
 
-**Rationale**: Input validation prevents data corruption and provides defensive guarantees
-to downstream code. User-friendly error messages reduce support burden and improve UX.
+**Frontend**:
+- Next.js 16+ (App Router only, no Pages Router)
+- TypeScript (strict mode)
+- Tailwind CSS + shadcn/ui
+- Better Auth (for JWT support)
 
-### V. In-Memory Task Storage
+**Backend**:
+- Python FastAPI (latest)
+- SQLModel (ORM)
+- Neon Serverless PostgreSQL
 
-Tasks are stored as a Python list of dictionaries with fixed schema:
-`{'id': int, 'title': str, 'description': str, 'complete': bool}`.
-IDs auto-increment starting from 1. No persistence layer (sessions are ephemeral).
-This design is sufficient for console-based learning applications and allows
-straightforward testing without test infrastructure.
+**Package Management**:
+- Backend: UV
+- Frontend: npm/pnpm
 
-**Rationale**: In-memory storage eliminates external dependencies, database complexity,
-and operational overhead. Suitable for educational use and small-scale console apps.
-Auto-increment IDs ensure uniqueness without manual management.
+**No additional external dependencies for Phase II beyond the above.**
 
-### VI. CLI and Minimal Command Parsing
+### V. Modular Architecture & Monorepo Structure
 
-The CLI loop accepts commands via `input()` or `sys.argv`: `add`, `list`, `update`,
-`delete`, `mark`, `exit`. No argparse or external CLI libraries—simple string splitting
-suffices. Commands are case-insensitive; unclear commands prompt for clarification.
-On `exit`, print a goodbye message and terminate gracefully.
+Single repository with organized subdirectories ensures scalability and clarity.
 
-**Rationale**: Minimal parsing keeps the code beginner-friendly and dependency-free.
-Simple string-based commands are intuitive for console users. Graceful exit improves UX.
+**Structure**:
+- `/specs/` — All specifications (overview, architecture, features, api, database, ui)
+- `/frontend/` — Next.js application with CLAUDE.md guidance
+- `/backend/` — FastAPI application with CLAUDE.md guidance
+- `/agents/` and `/skills/` — Reserved for Phase 3 (AI agents and skills)
+- `/.specify/` — Spec-Kit Plus templates, scripts, and memory
+- `/history/prompts/` — Prompt History Records (PHR)
+- `/history/adr/` — Architecture Decision Records (ADR)
 
-### VII. Formatted Output and Readability
+### VI. Testability & Quality Gates
 
-Tasks are displayed in a formatted table-like string (e.g., `ID | Title | Description | Status`).
-Status uses `[x]` for complete, `[ ]` for incomplete. Column alignment and spacing ensure
-easy scanning. Each command produces clear, human-readable feedback (success messages,
-error explanations, confirmation prompts).
+All code must be testable and tested. Integration tests verify full flows including authentication and user isolation.
 
-**Rationale**: Well-formatted output reduces errors during manual testing and provides
-professional UX. Consistent status notation (`[x]` vs `[ ]`) is intuitive and aligns with
-common TODO list conventions.
+**Non-negotiable rules**:
+- Backend: Unit tests for models and routes; integration tests for API contracts
+- Frontend: Component tests; end-to-end tests for auth flows and task CRUD
+- Cross-user security tests: Attempt to access another user's tasks; must fail with 401/403
+- No code merge without passing tests
+- Code coverage expectations: Backend routes ≥80%, frontend components ≥70%
 
-## Implementation Standards
+### VII. API Design Standards
 
-### Function Signature Convention
+RESTful API with consistent contracts, clear error taxonomy, and JSON-only payloads.
 
-All functions in `todo_manager.py` follow this pattern:
-- First parameter: `tasks: list[dict]` (mutable task list)
-- Subsequent parameters: domain-specific inputs (title, id, etc.)
-- Return type: `None` (side-effect based) or appropriate value (query-based)
-- Docstring: one-line summary, optional parameter/return description if non-obvious
+**Non-negotiable rules**:
+- Base path: `/api/tasks` (no `{user_id}` in URL; derived from JWT)
+- Standard HTTP methods: GET (read), POST (create), PUT (update), PATCH (partial), DELETE (remove)
+- All responses in JSON; no HTML
+- Status codes: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error
+- Request/response schemas documented and validated
+- Query parameters for filtering/sorting (e.g., `?status=pending&sort=created_at`)
 
-### Validation Pattern
+### VIII. Database Design & Normalization
 
-For each user input operation:
-1. Check required fields are non-empty (title required for add)
-2. Validate ID exists (for update, delete, mark)
-3. Verify no duplicate IDs on new task creation
-4. Raise `ValueError` with user-friendly message if validation fails
+Proper schema design with indexes, constraints, and relationships for performance and correctness.
 
-### Testing Approach
+**Non-negotiable rules**:
+- `tasks` table: `id`, `user_id` (indexed, foreign key), `title`, `description`, `completed`, `created_at`, `updated_at`
+- Foreign key constraints: `user_id` references Better Auth user table
+- Indexes on: `user_id`, `created_at`, `completed` (compound indexes for common filters)
+- Timestamps: `created_at` (immutable), `updated_at` (on insert and update)
+- No NULL titles; default `completed=false`
 
-Code is manually testable in the console without external test frameworks:
-- `add` creates task and prints success
-- `list` displays all tasks with proper formatting
-- `update` modifies an existing task
-- `delete` removes a task and confirms
-- `mark` toggles task completion status
-- `exit` terminates cleanly
+### IX. Code Quality & Simplicity (YAGNI)
 
-Developers verify functionality by running the app and executing each command.
+Keep solutions simple, focused, and maintainable. Avoid over-engineering.
 
-## Code Structure
+**Non-negotiable rules**:
+- Minimum viable diff: only code required for the feature
+- No unrelated refactoring in the same commit
+- No premature abstractions; DRY applies after 3+ uses
+- Type safety: all functions have type hints
+- Comments only for non-obvious logic
+- Clear error messages; avoid cryptic codes
 
-### Directory Layout
+### X. Traceability & Documentation
+
+All decisions, code, and tests are traceable for hackathon judging and future reference.
+
+**Non-negotiable rules**:
+- Prompt History Records (PHR) created for every significant user input
+- Architecture Decision Records (ADR) for major decisions
+- Code references in documentation (e.g., `backend/routes/tasks.py:42`)
+- Commit messages reference spec/ADR/PHR when applicable
+- Final submission includes complete `/history/` for audit trail
+
+## Security & Authentication (Foundation)
+
+### JWT Token Flow
+
+1. **Frontend (Better Auth)**:
+   - User signs up/logs in via Better Auth UI
+   - Better Auth generates JWT token and stores in secure storage
+   - Centralized API client (`/lib/api.ts`) automatically attaches token to all requests
+
+2. **Backend (FastAPI)**:
+   - Dependency injection extracts JWT from `Authorization: Bearer <token>` header
+   - Shared secret (`BETTER_AUTH_SECRET`) verifies signature
+   - Extract `user_id` and user claims; inject into route handlers
+   - All database queries filtered by `user_id`
+
+### Authentication Errors
+
+- **401 Unauthorized**: Missing/invalid/expired token
+- **403 Forbidden**: Valid token but insufficient permissions (should not occur for basic task CRUD)
+
+### Data Isolation Enforcement
+
+Every route handler receives `current_user` dependency containing verified `user_id`. Before returning any data, verify ownership:
+
+```python
+# Example: Get task (must belong to current user)
+@router.get("/tasks/{id}")
+async def get_task(id: int, current_user = Depends(verify_jwt)):
+    task = db.query(Task).filter(Task.id == id, Task.user_id == current_user["user_id"]).first()
+    if not task:
+        raise HTTPException(404)  # Hides whether task exists or belongs to another user
+    return task
+```
+
+### No Session Storage
+
+All state is in JWT. No user sessions in database. Eliminates logout-but-still-valid token race conditions.
+
+## API Specifications (Phase II Core)
+
+### Task CRUD Endpoints
+
+| Method | Path | Description | Auth | Filtering |
+|--------|------|-------------|------|-----------|
+| `GET` | `/api/tasks` | List all user's tasks | JWT | `?status=pending/completed&sort=created_at` |
+| `POST` | `/api/tasks` | Create new task | JWT | N/A |
+| `GET` | `/api/tasks/{id}` | Get specific task | JWT | Verifies ownership |
+| `PUT` | `/api/tasks/{id}` | Update task (full) | JWT | Verifies ownership |
+| `PATCH` | `/api/tasks/{id}/complete` | Toggle completion | JWT | Verifies ownership |
+| `DELETE` | `/api/tasks/{id}` | Delete task | JWT | Verifies ownership |
+
+### Request/Response Schemas
+
+**Create Task** (`POST /api/tasks`):
+```json
+Request: { "title": "string (required)", "description": "string (optional)" }
+Response (201): { "id": int, "user_id": string, "title": string, "description": string, "completed": false, "created_at": "ISO8601", "updated_at": "ISO8601" }
+```
+
+**List Tasks** (`GET /api/tasks`):
+```json
+Response (200): [{ task object }, ...]
+```
+
+**Update Task** (`PUT /api/tasks/{id}`):
+```json
+Request: { "title": "string", "description": "string" }
+Response (200): { task object }
+```
+
+**Toggle Completion** (`PATCH /api/tasks/{id}/complete`):
+```json
+Response (200): { task object with updated completed status }
+```
+
+## Frontend Standards (Next.js 16+ App Router)
+
+### Architecture
+
+- **Server Components** (default): Fetch data server-side; render HTML
+- **Client Components** (`use client`): Only for interactive elements (forms, real-time updates)
+- **Centralized API Client** (`/lib/api.ts`): All HTTP requests go through single client; JWT attached automatically
+- **Layout & Pages**: Organize by feature (e.g., `/app/tasks/page.tsx`, `/app/tasks/[id]/page.tsx`)
+- **Components**: Reusable shadcn/ui components; minimal custom CSS
+
+### Required Features
+
+1. **Auth Guard**: Redirect unauthenticated users to login (Better Auth handles UI)
+2. **Task List Page** (`/app/tasks`): Display all user tasks with completion status
+3. **Add Task Form**: Create new task (title, optional description)
+4. **Edit Task Modal/Form**: Update existing task
+5. **Delete Confirmation**: Confirm before deletion
+6. **Mark Complete**: Toggle completion status (button or checkbox)
+
+### Responsive Design
+
+- Mobile-first: Tailwind responsive classes
+- Desktop: Full layout with sidebar/navigation
+- Dark mode ready: shadcn/ui theme support
+
+## Backend Standards (FastAPI + SQLModel)
+
+### Project Structure
 
 ```
-todo-app/
-├── .specify/
-│   ├── memory/
-│   │   └── constitution.md           # This file
-│   └── templates/
-├── src/
-│   ├── main.py                       # CLI entry point, command loop
-│   └── todo_manager.py               # Core task logic (CRUD, validation)
-├── CLAUDE.md                         # Agent-specific guidance
-├── README.md                         # User documentation
-└── pyproject.toml                    # UV project config (Python 3.13+)
+backend/
+├── main.py                 # FastAPI app, CORS, middleware, routes
+├── db.py                   # Database connection, session management
+├── models.py               # SQLModel tables (Task, User if needed)
+├── schemas.py              # Pydantic schemas for request/response validation
+├── dependencies/
+│   └── auth.py             # JWT verification, current_user injection
+├── routes/
+│   └── tasks.py            # Task CRUD endpoints
+├── pyproject.toml          # UV dependencies
+└── .env.example            # Environment variable template
 ```
 
-### Module Responsibilities
+### Async Patterns
 
-**`src/todo_manager.py`**:
-- `add_task(tasks, title, description) -> None`: Create new task
-- `list_tasks(tasks) -> str`: Format tasks for display
-- `update_task(tasks, task_id, title, description) -> None`: Modify task
-- `delete_task(tasks, task_id) -> None`: Remove task
-- `mark_complete(tasks, task_id) -> None`: Toggle completion
-- `mark_incomplete(tasks, task_id) -> None`: Toggle incompletion
-- `get_task(tasks, task_id) -> dict`: Retrieve task by ID (internal helper)
+- All route handlers are `async def`
+- Database operations use SQLModel async sessions
+- No blocking I/O; use appropriate async libraries
 
-**`src/main.py`**:
-- `if __name__ == "__main__": main()` entry point
-- `main()`: Command loop accepting user input
-- Parse commands and delegate to `todo_manager` functions
-- Handle and display results/errors
+### Error Handling
+
+- Custom `HTTPException` with clear messages
+- Proper status codes (400, 401, 403, 404, 500)
+- Stack traces logged; generic messages returned to client
+
+## Testing Standards
+
+### Backend Tests
+
+- **Unit**: Model creation, schema validation, utility functions
+- **Integration**: Full request/response cycle, authentication, authorization
+- **Security**: Cross-user access attempts must fail with 401/403
+
+### Frontend Tests
+
+- **Component**: Render, user interaction, async data loading
+- **Integration**: Full auth flow, task CRUD workflow
+- **E2E**: Login → Create task → Edit → Mark complete → Delete
+
+### Coverage & CI/CD
+
+- Backend: 80%+ coverage for routes and models
+- Frontend: 70%+ coverage for critical paths
+- CI/CD pipeline runs tests on every PR; must pass before merge
+
+## Development Workflow
+
+### Specification Phase
+
+1. Write spec for feature/API/database/UI change
+2. User approves spec
+3. Plan phase begins
+
+### Planning Phase
+
+1. Architect solution given spec
+2. Identify tasks and dependencies
+3. Document decisions (ADRs for significant ones)
+4. User approves plan
+
+### Implementation Phase
+
+1. Execute tasks in dependency order
+2. Generate code from plan using specialized agents
+3. Tests written alongside code
+4. All changes reference spec/plan/task
+5. Commit with traceability information
+
+### Testing Phase
+
+1. All tests pass locally
+2. Code review verifies compliance with constitution
+3. Cross-user security tests executed
+4. Integration tests verify full flows
+
+### Deployment Readiness
+
+- All specs in `/specs/`
+- All decisions in `/history/adr/`
+- All prompts in `/history/prompts/`
+- All tests passing
+- Code coverage ≥ thresholds
+- Commit history clean and traceable
 
 ## Governance
 
-### Amendment Procedure
+### Constitution Authority
 
-This constitution is binding for all code contributions. Changes to this document require:
-1. Explicit justification (why the change improves the project)
-2. Impact assessment (which code/templates are affected)
-3. Update dependent templates if principles or constraints change
-4. Version bump following semantic versioning
+This constitution supersedes all other guidance. When conflicts arise, this document is authoritative. Every pull request must verify compliance before merge.
 
-### Principle Compliance Review
+### Amendment Process
 
-All code PRs must verify alignment with these seven principles:
-- Simplicity (no external deps, in-memory only)
-- Modularity (clear separation of concerns)
-- Type safety and clean code (type hints, PEP 8, meaningful names)
-- Input validation (no invalid states possible)
-- Storage design (list of dicts, auto-increment IDs)
-- CLI implementation (minimal parsing, graceful commands)
-- Output formatting (human-readable, consistent status notation)
+1. **Identification**: Current principle/section identified as inadequate
+2. **Proposal**: Detailed amendment with rationale and impact on existing code
+3. **Approval**: User consent required
+4. **Migration**: Changes to dependent code/specs documented
+5. **Version Bump**: Semantic versioning applied
+6. **Documentation**: Changelog updated; team notified
 
-### Development Workflow
+### Version Numbering
 
-Use this constitution as the lens for all design and implementation discussions.
-If a proposal violates a principle, surface it explicitly: "This violates Principle II
-(Modularity)" or "This adds external dependency, violating Principle I (Simplicity)."
+- **MAJOR**: Backward-incompatible principle changes or removals
+- **MINOR**: New principles or significant expansions
+- **PATCH**: Clarifications, wording, non-semantic refinements
 
-Treat principles as hard constraints, not guidelines. Exceptions require documented
-justification in a commit message or ADR.
+### Compliance Review
 
-## Version and History
+- All specs verified against constitution before approval
+- All code generation validated against stack/architecture rules
+- Security principles (user isolation, auth) verified on every implementation
+- Code reviews check: traceability, compliance, tests, simplicity
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-29 | **Last Amended**: 2025-12-29
+### Runtime Guidance
 
-### Rationale for v1.0.0
+Detailed development guidance in `CLAUDE.md` files at each level:
+- Root: `/CLAUDE.md` (constitutional context)
+- Frontend: `/frontend/CLAUDE.md` (Next.js patterns)
+- Backend: `/backend/CLAUDE.md` (FastAPI patterns)
 
-Initial constitution for the Python TODO application project. Establishes seven core
-principles focused on simplicity, modularity, type safety, validation, in-memory storage,
-minimal CLI, and formatted output. Principles are derived from the project brief and
-reflect best practices for beginner-friendly console applications.
+These files evolve with constitution but never contradict it.
+
+### Hackathon Submission Checklist
+
+Before final submission:
+
+- [ ] All features functional and tested
+- [ ] User isolation verified: attempts to access other users' tasks fail
+- [ ] Authentication: all endpoints require valid JWT
+- [ ] Specs complete: `/specs/` organized and comprehensive
+- [ ] Architecture decisions documented: `/history/adr/`
+- [ ] Prompt history complete: `/history/prompts/` with all major interactions
+- [ ] Code references correct: all citations match actual line numbers
+- [ ] Tests passing: backend ≥80%, frontend ≥70% coverage
+- [ ] Monorepo clean: no stray files, proper structure
+- [ ] Documentation: README updated for Phase II; setup instructions clear
+- [ ] Commit history traceable: messages reference specs/decisions
+
+## Sync Impact Report
+
+<!-- Generated: 2026-01-03 -->
+
+### Version Change
+- **Old**: [CONSTITUTION_VERSION] (template, unversioned)
+- **New**: 1.0.0 (Phase II kickoff)
+
+### Modified Principles
+- New constitution established; no renames (first version)
+
+### Added Sections
+- Security & Authentication (JWT token flow, data isolation)
+- API Specifications (REST endpoints, request/response schemas)
+- Frontend Standards (Next.js App Router patterns)
+- Backend Standards (FastAPI structure, async patterns)
+- Testing Standards (unit, integration, E2E, coverage)
+- Development Workflow (spec → plan → implement → test)
+- Governance (amendment process, versioning, compliance, hackathon checklist)
+
+### Removed Sections
+- None (first complete constitution)
+
+### Templates Requiring Updates
+
+| Template | Status | Notes |
+|----------|--------|-------|
+| `/specs/features/spec-template.md` | ⚠ Pending | Create feature spec template aligned with Section V |
+| `/specs/api/api-template.md` | ⚠ Pending | Create API spec template aligned with Section "API Specifications" |
+| `/specs/database/db-template.md` | ⚠ Pending | Create database spec template aligned with Section "Database Design" |
+| `/specs/ui/ui-template.md` | ⚠ Pending | Create UI spec template aligned with Section "Frontend Standards" |
+| `.specify/templates/plan-template.md` | ⚠ Pending | Verify alignment with "Development Workflow" |
+| `.specify/templates/tasks-template.md` | ⚠ Pending | Verify alignment with "Implementation Phase" |
+| `CLAUDE.md` (root) | ⚠ Pending | Sync with constitution; remove outdated phase-specific guidance |
+| `/frontend/CLAUDE.md` | ⚠ Pending | Create; align with "Frontend Standards" |
+| `/backend/CLAUDE.md` | ⚠ Pending | Create; align with "Backend Standards" |
+
+### Follow-Up TODOs
+
+- [ ] Create spec templates for all domains (features, api, database, ui)
+- [ ] Create frontend and backend CLAUDE.md guidance files
+- [ ] Set up CI/CD pipeline with test coverage gates
+- [ ] Initialize `.env.example` with required variables (BETTER_AUTH_SECRET, DATABASE_URL, etc.)
+- [ ] Create first set of specs for Phase II features (auth, task CRUD, database schema)
+
+---
+
+**Version**: 1.0.0 | **Ratified**: 2026-01-03 | **Last Amended**: 2026-01-03
