@@ -103,7 +103,7 @@ Filter tasks by completion status.
 
 ## Clarifications
 
-### Session 2026-01-08
+### Session 2026-01-08 (Initial)
 
 - Q: Who is responsible for creating and issuing the JWT token? → A: Better Auth is configured to issue JWT tokens when users log in. These tokens are self-contained and verified by the backend using the secret key.
 - Q: Where is the Better Auth server running? → A: Same FastAPI backend. Better Auth is integrated as a library (better-auth Python package) within the FastAPI application. The /api/auth/* endpoints are automatically mounted by Better Auth when configured in main.py. No separate server required.
@@ -112,12 +112,38 @@ Filter tasks by completion status.
 - Q: How should the frontend store the JWT for subsequent API calls? → A: localStorage (persistent).
 - Q: What is the specific sign-in failure? → A: Unable to sign in using better-auth (specific error/behavior needs investigation).
 
+### Session 2026-01-08 (Root Cause Investigation)
+
+- Q: Is Better Auth initialized in the backend? → A: **No** - Better Auth is not initialized in the backend yet (missing library integration).
+- Q: Is the `better-auth` package installed in backend dependencies? → A: **No** - Package not installed yet; needs to be added to requirements.
+- Q: What database is the backend connected to? → A: PostgreSQL (Neon) with `postgresql+asyncpg://...`
+- Q: How should Better Auth be integrated? → A: **Better Auth on frontend only**. Frontend (Next.js) uses Better Auth for UI and token generation. Backend (FastAPI) validates JWT tokens using shared secret and stores users in PostgreSQL via SQLModel.
+- Q: What JWT claim contains user ID? → A: **`sub` claim** (standard JWT) - Backend extracts `sub` as the user identifier, not custom `user_id` claim. **CORRECTS EARLIER SPEC STATEMENT**.
+
+### Session 2026-01-09 (Frontend Auth Flow Clarification - SUPERSEDED)
+
+- Q: Where does signup/login occur - frontend or backend? → A: **Frontend only**. Frontend (Next.js) uses Better Auth library directly for signup/login UI and token generation. Backend does NOT have `/api/auth/*` endpoints. ~~SUPERSEDED BY SESSION 2026-01-09 DECISION BELOW~~
+- Q: How does frontend get JWT token? → A: Frontend calls Better Auth library (not backend). Better Auth handles user registration and login, generates JWT with `sub` claim containing user ID. Frontend stores token in localStorage, then includes it in `Authorization: Bearer <token>` header for all backend API calls. ~~SUPERSEDED BY SESSION 2026-01-09 DECISION BELOW~~
+
+### Session 2026-01-09 (Critical Architectural Decision - Better Auth Backend Integration)
+
+**DECISION**: After user testing revealed that Better Auth's `createAuthClient()` from "better-auth/react" requires backend auth endpoints (`/api/auth/sign-up/email`, `/api/auth/login/email`, etc.), the team decided to **implement full Better Auth backend integration** instead of frontend-only auth.
+
+**Rationale**: Better Auth is designed as a full-stack authentication solution. The JavaScript client automatically attempts to call backend endpoints. Removing these endpoints causes 404 errors. Option A was chosen to leverage Better Auth's complete feature set.
+
+**Updated Auth Architecture**:
+- Q: Will the backend implement auth endpoints? → A: **YES** - Backend will implement complete Better Auth integration with `/api/auth/*` endpoints
+- Q: How will Better Auth be integrated on the backend? → A: Install `better-auth` Python package on FastAPI. Configure Better Auth middleware/routes. Frontend calls `/api/auth/signup`, `/api/auth/login` endpoints directly.
+- Q: Will users be stored in the backend database? → A: **YES** - Better Auth will manage user records in PostgreSQL via SQLModel (users table with email, hashed_password, etc.)
+- Q: How will frontend get JWT tokens? → A: Frontend calls `/api/auth/signup` or `/api/auth/login` endpoints. Backend returns JWT token with `sub` claim. Frontend stores token in localStorage.
+- Q: Will JWT validation change? → A: No - Backend still validates JWT using BETTER_AUTH_SECRET (HS256) and extracts `sub` claim. User isolation still enforced.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: Validate JWT using BETTER_AUTH_SECRET (HS256)
-- **FR-002**: Extract user_id claim (custom claim from Better Auth), reject invalid with 401
+- **FR-002**: Extract `sub` claim (standard JWT claim from Better Auth), reject invalid with 401
 - **FR-003**: Create with required title (1-200), optional description
 - **FR-004**: GET /api/tasks returns user's tasks, 200
 - **FR-005**: Support ?status=all|pending|completed filtering:
@@ -141,8 +167,8 @@ Filter tasks by completion status.
 ### Key Entities
 
 - **Task**: id (PK), user_id (indexed, max 255 chars), title (1-200), description (optional), completed (bool), created_at, updated_at
-  - user_id: VARCHAR(255) NOT NULL, format: alphanumeric + hyphens (e.g., "user_abc123def456"), extracted from JWT user_id claim
-- **User**: Better Auth managed; backend uses JWT user_id claim (not sub), stored as string in token payload
+  - user_id: VARCHAR(255) NOT NULL, format: alphanumeric + hyphens (e.g., "user_abc123def456"), extracted from JWT `sub` claim
+- **User**: Managed by Better Auth on frontend; backend uses JWT `sub` claim (standard JWT), stored as string in token payload
 
 ## Success Criteria *(mandatory)*
 
@@ -152,7 +178,7 @@ Filter tasks by completion status.
 - **SC-002**: User A cannot view/modify/delete User B's tasks (404 isolation verified)
 - **SC-003**: Create task < 200ms p95, retrieve < 100ms p95 (includes database operations)
 - **SC-004**: All endpoints return correct codes matching /lib/api.ts
-- **SC-005**: Authenticates and validates JWT tokens from Better Auth frontend with correct sub claim extraction
+- **SC-005**: Validates JWT tokens from Better Auth frontend with correct `sub` claim extraction for user isolation
 - **SC-006**: Concurrent users (50+) without data loss or cross-user leakage; all creates/updates/deletes succeed
 - **SC-007**: Tasks persist across application restarts
 - **SC-008**: Swagger fully functional with all 6 endpoints documented
@@ -161,20 +187,26 @@ Filter tasks by completion status.
 
 ### Assumptions
 
-- Better Auth is integrated on the same FastAPI backend
-- Better Auth issues self-contained JWT tokens with `user_id` claim
+- Better Auth is integrated on BOTH frontend (Next.js) and backend (FastAPI with `better-auth` Python package)
+- Backend implements `/api/auth/*` endpoints for signup, login, and token generation
+- Better Auth issues self-contained JWT tokens with `sub` claim (standard JWT)
+- JWT is generated by backend auth endpoints, signed with BETTER_AUTH_SECRET (HS256)
+- Frontend stores JWT in localStorage for persistence and includes in Authorization header
 - Frontend sends JWT in Authorization header: `Authorization: Bearer <token>`
-- Frontend stores JWT in localStorage for persistence
+- Users are stored in PostgreSQL database managed by Better Auth backend
 - Neon PostgreSQL stable
-- user_id is non-empty string
+- `sub` claim (user identifier from JWT) is a non-empty string
+- BETTER_AUTH_SECRET environment variable is shared between frontend client config and backend JWT verification
 
 ### Better Auth Integration Details
 
-- **Auth Endpoint**: `/api/auth/*` (Better Auth handles signup, login, logout)
-- **JWT Validation**: Backend validates JWT signature using BETTER_AUTH_SECRET before processing API requests
-- **Token Claim**: JWT payload contains `user_id` claim (not standard `sub`), which backend extracts to enforce user isolation
-- **Token Expiration**: Token validity and expiration handled by Better Auth; backend returns 401 on expired/invalid tokens
-- **User Records**: Better Auth manages user storage; backend uses extracted user_id for task isolation only
+- **Auth Endpoints**: Backend implements complete Better Auth integration with `/api/auth/*` endpoints. Frontend's Better Auth library client calls these endpoints directly for signup/login. Backend has `/api/auth/sign-up/email`, `/api/auth/login/email`, and related endpoints.
+- **JWT Generation**: Backend's Better Auth integration generates JWT tokens with `sub` claim containing user identifier. JWT is signed with BETTER_AUTH_SECRET (HS256).
+- **JWT Validation**: Backend validates JWT signature using BETTER_AUTH_SECRET (HS256) before processing task API requests. Backend extracts `sub` claim for user isolation.
+- **Token Claim**: JWT payload contains standard `sub` claim (NOT custom `user_id`), which backend extracts to enforce user isolation and filter tasks by user.
+- **Token Expiration**: Token validity and expiration handled by Better Auth backend; backend returns 401 on expired/invalid tokens during task operations.
+- **User Records**: Better Auth backend manages user storage in PostgreSQL. Backend stores user records with email, hashed password, and other auth metadata. Task isolation enforced via extracted `sub` from JWT.
+- **Backend Auth Endpoints**: Backend DOES implement `/api/auth/*` endpoints with full Better Auth integration. Frontend's Better Auth client calls these endpoints directly for signup/login/logout operations.
 
 ## Acceptance Checklist
 

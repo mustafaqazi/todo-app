@@ -35,7 +35,26 @@
       "Bash(git -C \"E:\\\\GH-Q4\\\\todo-app-Phase2\" rev-parse --abbrev-ref HEAD)",
       "Bash(git -C \"E:\\\\GH-Q4\\\\todo-app-Phase2\" config user.name)",
       "Skill(sp.plan)",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)"
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
+      "Bash(findstr:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout 5 python:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nImplement complete FastAPI authentication system with JWT & user isolation\n\nComprehensive implementation of production-ready authentication including:\n\n- NEW: User authentication module \\(signup/login/verify endpoints\\)\n  - Secure password hashing with bcrypt via passlib\n  - JWT token generation using python-jose \\(HS256\\)\n  - Password strength validation \\(8+ chars, upper/lower/digit\\)\n  - Email validation with duplicate prevention\n\n- NEW: Security utilities\n  - Password hashing/verification \\(hash_password, verify_password\\)\n  - JWT token creation/verification \\(create_access_token, decode_token\\)\n  - Password strength validation \\(validate_password_strength\\)\n\n- NEW: User data model \\(SQLModel\\)\n  - User table with email \\(unique, indexed\\) and hashed_password\n  - Proper timestamps \\(created_at\\)\n\n- NEW: Request/response schemas\n  - UserSignup: email + password with validation\n  - UserLogin: credentials validation\n  - AuthResponse: JWT token + user_id\n  - VerifyResponse: token validity check\n\n- UPDATED: JWT middleware/dependencies\n  - Fixed to use settings object \\(allows test override\\)\n  - Extracts standard ''sub'' claim from JWT tokens\n  - Returns user_id for dependency injection\n\n- NEW: Comprehensive test suite \\(24 tests, 100% pass\\)\n  - Signup validation \\(9 tests\\): success, duplicates, weak passwords\n  - Login validation \\(6 tests\\): success, invalid creds, validation\n  - Token verification \\(7 tests\\): valid, expired, invalid, missing\n  - Integration flows \\(2 tests\\): full signup→login, signup→task\n\n- NEW: Test fixtures with proper isolation\n  - In-memory SQLite per test \\(fresh schema\\)\n  - JWT token generation with correct ''sub'' claim\n  - Async database session management\n  - Mock users and tasks for testing\n\nAll endpoints follow FastAPI best practices:\n- Proper HTTP status codes \\(201, 200, 401, 404, 409, 422\\)\n- Comprehensive error handling\n- Type hints on all functions\n- Full docstrings\n- Security: no hardcoded secrets, password hashing, user isolation\n\nTests verify:\n✅ JWT validation with ''sub'' claim\n✅ Password strength enforcement\n✅ User isolation \\(query filtering\\)\n✅ Duplicate email prevention\n✅ Token expiration handling\n✅ Integration with existing task CRUD\n\nProduction ready: Backend starts cleanly, all tests pass, security verified.\n\nCo-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(xargs -I {} bash -c 'echo \"\"{}\"\"; wc -l {} | awk \"\"{print \\\\\"\"  Lines: \\\\\"\" \\\\$1}\"\"')",
+      "Bash(app)",
+      "Bash(src)",
+      "Bash(pages \")",
+      "Bash(npm run type-check:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(taskkill /PID 15876 /F)",
+      "Bash(kill:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)",
+      "Bash(pkill:*)",
+      "Bash(tasklist:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

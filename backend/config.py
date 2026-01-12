@@ -3,6 +3,11 @@
 import os
 import warnings
 from typing import Optional
+from dotenv import load_dotenv
+
+# Load .env file (skip in test mode)
+if os.getenv("PYTEST_CURRENT_TEST") is None:
+    load_dotenv()
 
 
 class Settings:
@@ -21,12 +26,22 @@ class Settings:
     )
     JWT_ALGORITHM: str = "HS256"
 
-    # CORS configuration
-    ALLOWED_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-    ]
+    # CORS configuration - loaded from environment, falls back to development defaults
+    ALLOWED_ORIGINS: list[str] = None  # Will be set in __post_init__ or __init__
+
+    def __post_init__(self):
+        """Parse CORS_ORIGINS from environment (comma-separated string)."""
+        cors_env = os.getenv("CORS_ORIGINS", "")
+        if cors_env:
+            # Parse comma-separated origins and strip whitespace
+            self.ALLOWED_ORIGINS = [origin.strip() for origin in cors_env.split(",") if origin.strip()]
+        else:
+            # Development defaults
+            self.ALLOWED_ORIGINS = [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+            ]
 
     # API configuration
     API_PREFIX: str = "/api"
@@ -40,6 +55,9 @@ class Settings:
         Issues warnings if recommended environment variables are not properly set,
         but allows the application to start for development/testing purposes.
         """
+        # Parse CORS_ORIGINS from environment
+        self.__post_init__()
+
         # Warn about BETTER_AUTH_SECRET
         if not self.BETTER_AUTH_SECRET or self.BETTER_AUTH_SECRET == "default-secret-change-in-production":
             warnings.warn(

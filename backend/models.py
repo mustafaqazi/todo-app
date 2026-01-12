@@ -67,3 +67,45 @@ class Task(SQLModel, table=True, extend_existing=True):
     class Config:
         """SQLModel configuration."""
         arbitrary_types_allowed = True
+
+
+class User(SQLModel, table=True, extend_existing=True):
+    """User model for authentication.
+
+    Attributes:
+        id: Primary key, auto-generated integer.
+        email: User's email address, unique and indexed.
+        hashed_password: Bcrypt-hashed password.
+        created_at: Timestamp when user was created (UTC).
+        updated_at: Timestamp when user record was last updated (UTC).
+    """
+
+    __tablename__ = "user"
+
+    id: Optional[int] = Field(
+        default=None,
+        primary_key=True,
+        description="Unique user identifier"
+    )
+    email: str = Field(
+        sa_column=Column(String(255), nullable=False, unique=True, index=True),
+        description="User's email address (unique)"
+    )
+    hashed_password: str = Field(
+        sa_column=Column(String(255), nullable=False),
+        description="Bcrypt-hashed password"
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp of user creation (UTC)",
+        sa_column=Column(DateTime, nullable=False, default=datetime.utcnow)
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp of last update (UTC)",
+        sa_column=Column(DateTime, nullable=False, default=datetime.utcnow)
+    )
+
+    class Config:
+        """SQLModel configuration."""
+        arbitrary_types_allowed = True

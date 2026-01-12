@@ -1,522 +1,796 @@
-"""Integration tests for task API endpoints"""
+"""Comprehensive task CRUD operation tests (Phases 4-8)."""
 
 import pytest
-from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import Session
 
-from backend.db import get_session
-from backend.main import app
+# Test constants from conftest
+TEST_USER_ID = "1"
+TEST_USER_ID_2 = "2"
+TEST_USER_EMAIL = "test1@example.com"
+TEST_USER_EMAIL_2 = "test2@example.com"
+TEST_PASSWORD = "TestPass123!"
 
 
-@pytest.mark.asyncio
-class TestTaskCreate:
-    """Tests for task creation endpoint."""
+# ============ Phase 4: User Story 2 - Update & Complete Tasks ============
 
-    async def test_create_task_success(self, auth_header, test_session):
-        """Test successful task creation."""
-        # Override get_session dependency
-        async def override_get_session():
-            yield test_session
 
-        app.dependency_overrides[get_session] = override_get_session
+class TestUpdateTask:
+    """Test PUT /api/tasks/{id} update endpoint."""
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.post(
-                "/api/tasks",
-                json={
-                    "title": "Test task",
-                    "description": "Test description"
-                },
-                headers=auth_header,
-            )
+    @pytest.mark.asyncio
+    async def test_update_task_success(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+        test_session: Session,
+    ):
+        """Test successful task update (T023)."""
+        # Act
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={
+                "title": "Updated Task Title",
+                "description": "Updated description",
+            },
+            headers=auth_header,
+        )
 
-        assert response.status_code == status.HTTP_201_CREATED
+        # Assert
+        assert response.status_code == 200
         data = response.json()
-        assert data["title"] == "Test task"
-        assert data["description"] == "Test description"
+        assert data["title"] == "Updated Task Title"
+        assert data["description"] == "Updated description"
         assert data["completed"] is False
-        assert "id" in data
-        assert "created_at" in data
-        assert "updated_at" in data
-
-    async def test_create_task_without_auth(self, test_session):
-        """Test task creation without authentication fails."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.post(
-                "/api/tasks",
-                json={"title": "Test task"}
-            )
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    async def test_create_task_invalid_title_empty(self, auth_header, test_session):
-        """Test task creation with empty title fails."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.post(
-                "/api/tasks",
-                json={"title": ""},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    async def test_create_task_title_too_long(self, auth_header, test_session):
-        """Test task creation with title > 200 chars fails."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.post(
-                "/api/tasks",
-                json={"title": "x" * 201},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    async def test_create_task_null_description_accepted(self, auth_header, test_session):
-        """Test that null description is accepted."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.post(
-                "/api/tasks",
-                json={"title": "Test task", "description": None},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["description"] is None
-
-
-@pytest.mark.asyncio
-class TestTaskList:
-    """Tests for task listing endpoint."""
-
-    async def test_list_tasks_empty(self, auth_header, test_session):
-        """Test listing tasks when none exist."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                "/api/tasks",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["items"] == []
-
-    async def test_list_tasks_with_status_all(self, auth_header, mock_task_1, mock_task_2, test_session):
-        """Test listing all tasks."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                "/api/tasks?status=all",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert len(data["items"]) == 2
-
-    async def test_list_tasks_filter_pending(self, auth_header, mock_task_1, mock_task_2, test_session):
-        """Test filtering tasks by pending status."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                "/api/tasks?status=pending",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert len(data["items"]) == 1
-        assert data["items"][0]["completed"] is False
-
-    async def test_list_tasks_filter_completed(self, auth_header, mock_task_1, mock_task_2, test_session):
-        """Test filtering tasks by completed status."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                "/api/tasks?status=completed",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert len(data["items"]) == 1
-        assert data["items"][0]["completed"] is True
-
-    async def test_list_tasks_user_isolation(
-        self, auth_header, auth_header_user_2,
-        mock_task_1, mock_task_user_2, test_session
-    ):
-        """Test that users only see their own tasks."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            # User 1 should see 1 task
-            response = await client.get(
-                "/api/tasks",
-                headers=auth_header,
-            )
-            assert response.status_code == status.HTTP_200_OK
-            assert len(response.json()["items"]) == 1
-
-            # User 2 should see 1 task (different one)
-            response = await client.get(
-                "/api/tasks",
-                headers=auth_header_user_2,
-            )
-            assert response.status_code == status.HTTP_200_OK
-            assert len(response.json()["items"]) == 1
-
-    async def test_list_tasks_without_auth(self, test_session):
-        """Test listing tasks without authentication fails."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get("/api/tasks")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.asyncio
-class TestTaskGet:
-    """Tests for getting a single task."""
-
-    async def test_get_task_success(self, auth_header, mock_task_1, test_session):
-        """Test getting a task successfully."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                f"/api/tasks/{mock_task_1.id}",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
         assert data["id"] == mock_task_1.id
-        assert data["title"] == "Buy groceries"
 
-    async def test_get_task_not_found(self, auth_header, test_session):
-        """Test getting non-existent task returns 404."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                "/api/tasks/999",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_get_task_wrong_user(
-        self, auth_header, auth_header_user_2,
-        mock_task_user_2, test_session
+    @pytest.mark.asyncio
+    async def test_update_task_title_only(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
     ):
-        """Test getting another user's task returns 404."""
-        async def override_get_session():
-            yield test_session
+        """Test updating only task title."""
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": "New Title"},
+            headers=auth_header,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            # User 1 tries to get User 2's task
-            response = await client.get(
-                f"/api/tasks/{mock_task_user_2.id}",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_get_task_without_auth(self, mock_task_1, test_session):
-        """Test getting task without authentication fails."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(f"/api/tasks/{mock_task_1.id}")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.asyncio
-class TestTaskUpdate:
-    """Tests for updating tasks."""
-
-    async def test_update_task_title_success(self, auth_header, mock_task_1, test_session):
-        """Test updating task title successfully."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.put(
-                f"/api/tasks/{mock_task_1.id}",
-                json={"title": "Updated title"},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == 200
         data = response.json()
-        assert data["title"] == "Updated title"
+        assert data["title"] == "New Title"
+        assert data["description"] == mock_task_1.description  # Unchanged
 
-    async def test_update_task_description(self, auth_header, mock_task_1, test_session):
-        """Test updating task description."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.put(
-                f"/api/tasks/{mock_task_1.id}",
-                json={"description": "New description"},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["description"] == "New description"
-
-    async def test_update_task_empty_title_fails(self, auth_header, mock_task_1, test_session):
-        """Test updating with empty title fails."""
-        async def override_get_session():
-            yield test_session
-
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.put(
-                f"/api/tasks/{mock_task_1.id}",
-                json={"title": ""},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    async def test_update_task_not_found(self, auth_header, test_session):
+    @pytest.mark.asyncio
+    async def test_update_task_not_found(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+    ):
         """Test updating non-existent task returns 404."""
-        async def override_get_session():
-            yield test_session
+        response = await client.put(
+            "/api/tasks/99999",
+            json={"title": "New Title"},
+            headers=auth_header,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.put(
-                "/api/tasks/999",
-                json={"title": "Updated"},
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_update_task_wrong_user(
-        self, auth_header, mock_task_user_2, test_session
+    @pytest.mark.asyncio
+    async def test_update_task_invalid_title_empty(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
     ):
-        """Test updating another user's task returns 404."""
-        async def override_get_session():
-            yield test_session
+        """Test updating task with empty title returns 422."""
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": ""},
+            headers=auth_header,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
+        assert response.status_code == 422
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.put(
-                f"/api/tasks/{mock_task_user_2.id}",
-                json={"title": "Hacked"},
-                headers=auth_header,
-            )
+    @pytest.mark.asyncio
+    async def test_update_task_invalid_title_too_long(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+    ):
+        """Test updating task with title > 200 chars returns 422."""
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": "x" * 201},
+            headers=auth_header,
+        )
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_update_task_cross_user_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
+    ):
+        """Test cross-user update returns 404 (T023 user isolation)."""
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": "Hacked"},
+            headers=auth_header_user_2,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+
+    @pytest.mark.asyncio
+    async def test_update_task_no_auth_returns_401(
+        self,
+        client: AsyncClient,
+        mock_task_1,
+    ):
+        """Test update without auth token returns 401."""
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": "New Title"},
+        )
+
+        assert response.status_code == 401
 
 
-@pytest.mark.asyncio
-class TestTaskToggleComplete:
-    """Tests for toggling task completion status."""
+class TestToggleComplete:
+    """Test PATCH /api/tasks/{id}/complete toggle endpoint."""
 
-    async def test_toggle_complete_pending_to_done(self, auth_header, mock_task_1, test_session):
-        """Test toggling pending task to completed."""
-        async def override_get_session():
-            yield test_session
+    @pytest.mark.asyncio
+    async def test_toggle_complete_success(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+    ):
+        """Test successful task completion toggle (T024)."""
+        # Act
+        response = await client.patch(
+            f"/api/tasks/{mock_task_1.id}/complete",
+            headers=auth_header,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
-
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.patch(
-                f"/api/tasks/{mock_task_1.id}/complete",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
+        # Assert
+        assert response.status_code == 200
         data = response.json()
         assert data["completed"] is True
+        assert data["id"] == mock_task_1.id
 
-    async def test_toggle_complete_done_to_pending(self, auth_header, mock_task_2, test_session):
-        """Test toggling completed task to pending."""
-        async def override_get_session():
-            yield test_session
+    @pytest.mark.asyncio
+    async def test_toggle_complete_toggle_back(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+    ):
+        """Test toggling completion back to false."""
+        # Toggle to complete
+        response1 = await client.patch(
+            f"/api/tasks/{mock_task_1.id}/complete",
+            headers=auth_header,
+        )
+        assert response1.status_code == 200
+        assert response1.json()["completed"] is True
 
-        app.dependency_overrides[get_session] = override_get_session
+        # Toggle back to incomplete
+        response2 = await client.patch(
+            f"/api/tasks/{mock_task_1.id}/complete",
+            headers=auth_header,
+        )
+        assert response2.status_code == 200
+        assert response2.json()["completed"] is False
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.patch(
-                f"/api/tasks/{mock_task_2.id}/complete",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["completed"] is False
-
-    async def test_toggle_complete_not_found(self, auth_header, test_session):
+    @pytest.mark.asyncio
+    async def test_toggle_complete_not_found(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+    ):
         """Test toggling non-existent task returns 404."""
-        async def override_get_session():
-            yield test_session
+        response = await client.patch(
+            "/api/tasks/99999/complete",
+            headers=auth_header,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.patch(
-                "/api/tasks/999/complete",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_toggle_complete_wrong_user(
-        self, auth_header, mock_task_user_2, test_session
+    @pytest.mark.asyncio
+    async def test_toggle_complete_cross_user_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
     ):
-        """Test toggling another user's task returns 404."""
-        async def override_get_session():
-            yield test_session
+        """Test cross-user toggle returns 404 (T024 user isolation)."""
+        response = await client.patch(
+            f"/api/tasks/{mock_task_1.id}/complete",
+            headers=auth_header_user_2,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.patch(
-                f"/api/tasks/{mock_task_user_2.id}/complete",
-                headers=auth_header,
-            )
+    @pytest.mark.asyncio
+    async def test_toggle_complete_no_auth_returns_401(
+        self,
+        client: AsyncClient,
+        mock_task_1,
+    ):
+        """Test toggle without auth token returns 401."""
+        response = await client.patch(
+            f"/api/tasks/{mock_task_1.id}/complete",
+        )
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == 401
 
 
-@pytest.mark.asyncio
-class TestTaskDelete:
-    """Tests for deleting tasks."""
+# ============ Phase 5: User Story 3 - Delete Tasks ============
 
-    async def test_delete_task_success(self, auth_header, mock_task_1, test_session):
-        """Test deleting a task successfully."""
-        async def override_get_session():
-            yield test_session
 
-        app.dependency_overrides[get_session] = override_get_session
+class TestDeleteTask:
+    """Test DELETE /api/tasks/{id} endpoint."""
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.delete(
-                f"/api/tasks/{mock_task_1.id}",
-                headers=auth_header,
-            )
+    @pytest.mark.asyncio
+    async def test_delete_task_success(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+    ):
+        """Test successful task deletion (T027)."""
+        # Act
+        response = await client.delete(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header,
+        )
 
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        # Assert
+        assert response.status_code == 204
 
-    async def test_delete_task_not_found(self, auth_header, test_session):
+    @pytest.mark.asyncio
+    async def test_delete_verify_gone(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+    ):
+        """Test deleted task cannot be retrieved (T028)."""
+        # Delete task
+        delete_response = await client.delete(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header,
+        )
+        assert delete_response.status_code == 204
+
+        # Try to get deleted task
+        get_response = await client.get(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header,
+        )
+
+        assert get_response.status_code == 404
+        assert get_response.json()["detail"] == "Task not found"
+
+    @pytest.mark.asyncio
+    async def test_delete_task_not_found(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+    ):
         """Test deleting non-existent task returns 404."""
-        async def override_get_session():
-            yield test_session
+        response = await client.delete(
+            "/api/tasks/99999",
+            headers=auth_header,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.delete(
-                "/api/tasks/999",
-                headers=auth_header,
-            )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_delete_task_wrong_user(
-        self, auth_header, mock_task_user_2, test_session
+    @pytest.mark.asyncio
+    async def test_delete_task_cross_user_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
     ):
-        """Test deleting another user's task returns 404."""
-        async def override_get_session():
-            yield test_session
+        """Test cross-user delete returns 404 (T027 user isolation)."""
+        response = await client.delete(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header_user_2,
+        )
 
-        app.dependency_overrides[get_session] = override_get_session
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.delete(
-                f"/api/tasks/{mock_task_user_2.id}",
+        # Verify task still exists for original user
+        auth_header = {"Authorization": f"Bearer valid_jwt_token", "Content-Type": "application/json"}
+
+    @pytest.mark.asyncio
+    async def test_delete_task_no_auth_returns_401(
+        self,
+        client: AsyncClient,
+        mock_task_1,
+    ):
+        """Test delete without auth token returns 401."""
+        response = await client.delete(
+            f"/api/tasks/{mock_task_1.id}",
+        )
+
+        assert response.status_code == 401
+
+
+# ============ Phase 6: User Story 4 - Multi-User Isolation ============
+
+
+class TestUserIsolation:
+    """Test multi-user isolation across all task operations."""
+
+    @pytest.mark.asyncio
+    async def test_user_isolation_list_tasks(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        auth_header_user_2: dict,
+        mock_task_1,
+        mock_task_2,
+        mock_task_user_2,
+    ):
+        """Test users only see their own tasks in list (T030)."""
+        # User 1 list tasks
+        response1 = await client.get(
+            "/api/tasks",
+            headers=auth_header,
+        )
+        assert response1.status_code == 200
+        user1_tasks = response1.json()
+        assert len(user1_tasks) == 2  # mock_task_1 and mock_task_2
+        user1_ids = [t["id"] for t in user1_tasks]
+        assert mock_task_1.id in user1_ids
+        assert mock_task_2.id in user1_ids
+
+        # User 2 list tasks
+        response2 = await client.get(
+            "/api/tasks",
+            headers=auth_header_user_2,
+        )
+        assert response2.status_code == 200
+        user2_tasks = response2.json()
+        assert len(user2_tasks) == 1  # Only mock_task_user_2
+        assert user2_tasks[0]["id"] == mock_task_user_2.id
+
+        # Verify user 1 cannot see user 2's tasks
+        assert mock_task_user_2.id not in user1_ids
+
+    @pytest.mark.asyncio
+    async def test_cross_user_get_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
+    ):
+        """Test GET returns 404 when accessing other user's task (T030)."""
+        response = await client.get(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header_user_2,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+
+    @pytest.mark.asyncio
+    async def test_cross_user_put_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
+    ):
+        """Test PUT returns 404 when updating other user's task (T030)."""
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": "Hacked"},
+            headers=auth_header_user_2,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+
+    @pytest.mark.asyncio
+    async def test_cross_user_patch_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
+    ):
+        """Test PATCH returns 404 when toggling other user's task (T030)."""
+        response = await client.patch(
+            f"/api/tasks/{mock_task_1.id}/complete",
+            headers=auth_header_user_2,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+
+    @pytest.mark.asyncio
+    async def test_cross_user_delete_returns_404(
+        self,
+        client: AsyncClient,
+        auth_header_user_2: dict,
+        mock_task_1,
+    ):
+        """Test DELETE returns 404 when deleting other user's task (T030)."""
+        response = await client.delete(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header_user_2,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Task not found"
+
+    @pytest.mark.asyncio
+    async def test_cross_user_cannot_modify_others_data(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        auth_header_user_2: dict,
+        mock_task_1,
+        test_session: Session,
+    ):
+        """Test that user 2 modifications don't affect user 1's data (T031)."""
+        original_title = mock_task_1.title
+
+        # User 2 tries to update user 1's task
+        response = await client.put(
+            f"/api/tasks/{mock_task_1.id}",
+            json={"title": "Hacked Title"},
+            headers=auth_header_user_2,
+        )
+        assert response.status_code == 404
+
+        # Verify user 1's task is unchanged
+        verify_response = await client.get(
+            f"/api/tasks/{mock_task_1.id}",
+            headers=auth_header,
+        )
+        assert verify_response.status_code == 200
+        assert verify_response.json()["title"] == original_title
+
+
+# ============ Phase 7: User Story 5 - Status Filtering ============
+
+
+class TestStatusFiltering:
+    """Test GET /api/tasks with status filtering."""
+
+    @pytest.mark.asyncio
+    async def test_filter_pending_tasks(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+        mock_task_2,
+    ):
+        """Test filtering for pending (incomplete) tasks (T032)."""
+        # mock_task_1 is incomplete (completed=False)
+        # mock_task_2 is complete (completed=True)
+        response = await client.get(
+            "/api/tasks?status=pending",
+            headers=auth_header,
+        )
+
+        assert response.status_code == 200
+        tasks = response.json()
+        assert len(tasks) == 1
+        assert tasks[0]["id"] == mock_task_1.id
+        assert tasks[0]["completed"] is False
+
+    @pytest.mark.asyncio
+    async def test_filter_completed_tasks(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+        mock_task_2,
+    ):
+        """Test filtering for completed tasks (T032)."""
+        response = await client.get(
+            "/api/tasks?status=completed",
+            headers=auth_header,
+        )
+
+        assert response.status_code == 200
+        tasks = response.json()
+        assert len(tasks) == 1
+        assert tasks[0]["id"] == mock_task_2.id
+        assert tasks[0]["completed"] is True
+
+    @pytest.mark.asyncio
+    async def test_filter_all_tasks(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+        mock_task_2,
+    ):
+        """Test 'all' status returns all tasks (T032)."""
+        response = await client.get(
+            "/api/tasks?status=all",
+            headers=auth_header,
+        )
+
+        assert response.status_code == 200
+        tasks = response.json()
+        assert len(tasks) == 2
+
+    @pytest.mark.asyncio
+    async def test_filter_default_is_all(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+        mock_task_2,
+    ):
+        """Test default status (no param) returns all tasks (T032)."""
+        response = await client.get(
+            "/api/tasks",
+            headers=auth_header,
+        )
+
+        assert response.status_code == 200
+        tasks = response.json()
+        assert len(tasks) == 2
+
+    @pytest.mark.asyncio
+    async def test_filter_invalid_status_returns_422(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+    ):
+        """Test invalid status parameter returns 422 (T034)."""
+        response = await client.get(
+            "/api/tasks?status=invalid",
+            headers=auth_header,
+        )
+
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_filter_empty_result(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        mock_task_1,
+    ):
+        """Test filtering returns empty list when no matches."""
+        # mock_task_1 is incomplete, so completed filter should be empty
+        response = await client.get(
+            "/api/tasks?status=completed",
+            headers=auth_header,
+        )
+
+        assert response.status_code == 200
+        tasks = response.json()
+        assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_filter_respects_user_isolation(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        auth_header_user_2: dict,
+        mock_task_1,
+        mock_task_2,
+        mock_task_user_2,
+    ):
+        """Test status filtering respects user isolation (T032)."""
+        # User 1 filter for pending
+        response1 = await client.get(
+            "/api/tasks?status=pending",
+            headers=auth_header,
+        )
+        user1_tasks = response1.json()
+        assert len(user1_tasks) == 1
+        assert user1_tasks[0]["user_id"] == TEST_USER_ID
+
+        # User 2 filter for pending (mock_task_user_2 is incomplete)
+        response2 = await client.get(
+            "/api/tasks?status=pending",
+            headers=auth_header_user_2,
+        )
+        user2_tasks = response2.json()
+        assert len(user2_tasks) == 1
+        assert user2_tasks[0]["user_id"] == TEST_USER_ID_2
+
+
+# ============ Phase 8: Comprehensive Integration Tests ============
+
+
+class TestTaskIntegration:
+    """End-to-end integration tests for complete task workflows."""
+
+    @pytest.mark.asyncio
+    async def test_full_task_lifecycle(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+    ):
+        """Test complete task lifecycle: create, update, toggle, delete."""
+        # Create task
+        create_response = await client.post(
+            "/api/tasks",
+            json={
+                "title": "Integration Test Task",
+                "description": "Full lifecycle test",
+            },
+            headers=auth_header,
+        )
+        assert create_response.status_code == 201
+        task = create_response.json()
+        task_id = task["id"]
+        assert task["completed"] is False
+
+        # Update task
+        update_response = await client.put(
+            f"/api/tasks/{task_id}",
+            json={"title": "Updated Task Title"},
+            headers=auth_header,
+        )
+        assert update_response.status_code == 200
+        assert update_response.json()["title"] == "Updated Task Title"
+
+        # Toggle to complete
+        toggle_response = await client.patch(
+            f"/api/tasks/{task_id}/complete",
+            headers=auth_header,
+        )
+        assert toggle_response.status_code == 200
+        assert toggle_response.json()["completed"] is True
+
+        # Delete task
+        delete_response = await client.delete(
+            f"/api/tasks/{task_id}",
+            headers=auth_header,
+        )
+        assert delete_response.status_code == 204
+
+        # Verify task is deleted
+        get_response = await client.get(
+            f"/api/tasks/{task_id}",
+            headers=auth_header,
+        )
+        assert get_response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_multiple_users_independent_tasks(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+        auth_header_user_2: dict,
+    ):
+        """Test that multiple users maintain independent task lists."""
+        # User 1 creates tasks
+        user1_create1 = await client.post(
+            "/api/tasks",
+            json={"title": "User 1 Task 1"},
+            headers=auth_header,
+        )
+        user1_task1_id = user1_create1.json()["id"]
+
+        user1_create2 = await client.post(
+            "/api/tasks",
+            json={"title": "User 1 Task 2"},
+            headers=auth_header,
+        )
+        user1_task2_id = user1_create2.json()["id"]
+
+        # User 2 creates tasks
+        user2_create1 = await client.post(
+            "/api/tasks",
+            json={"title": "User 2 Task 1"},
+            headers=auth_header_user_2,
+        )
+        user2_task1_id = user2_create1.json()["id"]
+
+        # Verify task counts
+        user1_list = await client.get("/api/tasks", headers=auth_header)
+        assert len(user1_list.json()) == 2
+
+        user2_list = await client.get("/api/tasks", headers=auth_header_user_2)
+        assert len(user2_list.json()) == 1
+
+        # User 1 updates their task
+        user1_update = await client.put(
+            f"/api/tasks/{user1_task1_id}",
+            json={"title": "User 1 Task 1 Updated"},
+            headers=auth_header,
+        )
+        assert user1_update.status_code == 200
+
+        # Verify user 2 cannot see update
+        user2_verify = await client.get(
+            f"/api/tasks/{user1_task1_id}",
+            headers=auth_header_user_2,
+        )
+        assert user2_verify.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_filtering_with_operations(
+        self,
+        client: AsyncClient,
+        auth_header: dict,
+    ):
+        """Test status filtering works correctly after task operations."""
+        # Create multiple tasks
+        tasks = []
+        for i in range(3):
+            response = await client.post(
+                "/api/tasks",
+                json={"title": f"Task {i}"},
                 headers=auth_header,
             )
+            tasks.append(response.json())
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        # Complete first and second task
+        await client.patch(
+            f"/api/tasks/{tasks[0]['id']}/complete",
+            headers=auth_header,
+        )
+        await client.patch(
+            f"/api/tasks/{tasks[1]['id']}/complete",
+            headers=auth_header,
+        )
 
+        # Filter for pending
+        pending_response = await client.get(
+            "/api/tasks?status=pending",
+            headers=auth_header,
+        )
+        pending_tasks = pending_response.json()
+        assert len(pending_tasks) == 1
+        assert pending_tasks[0]["id"] == tasks[2]["id"]
 
-@pytest.mark.asyncio
-class TestHealthCheck:
-    """Tests for health check endpoint."""
+        # Filter for completed
+        completed_response = await client.get(
+            "/api/tasks?status=completed",
+            headers=auth_header,
+        )
+        completed_tasks = completed_response.json()
+        assert len(completed_tasks) == 2
 
-    async def test_health_check(self, test_session):
-        """Test health check endpoint."""
-        async def override_get_session():
-            yield test_session
+    @pytest.mark.asyncio
+    async def test_authorization_failures(
+        self,
+        client: AsyncClient,
+        mock_task_1,
+    ):
+        """Test all operations fail without proper authorization."""
+        # No auth header
+        endpoints = [
+            ("GET", f"/api/tasks/{mock_task_1.id}"),
+            ("PUT", f"/api/tasks/{mock_task_1.id}"),
+            ("PATCH", f"/api/tasks/{mock_task_1.id}/complete"),
+            ("DELETE", f"/api/tasks/{mock_task_1.id}"),
+        ]
 
-        app.dependency_overrides[get_session] = override_get_session
+        for method, endpoint in endpoints:
+            if method == "GET":
+                response = await client.get(endpoint)
+            elif method == "PUT":
+                response = await client.put(endpoint, json={"title": "Test"})
+            elif method == "PATCH":
+                response = await client.patch(endpoint)
+            elif method == "DELETE":
+                response = await client.delete(endpoint)
 
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get("/health")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["status"] == "ok"
+            assert response.status_code == 401

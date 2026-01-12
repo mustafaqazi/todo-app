@@ -1,17 +1,30 @@
 """Task CRUD endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.future import select
 from sqlmodel import Session
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
 
-from ..db import get_session
-from ..dependencies.auth import get_current_user
-from ..models import Task
-from ..schemas import TaskCreate, TaskUpdate, TaskResponse
+from db import get_session
+from dependencies import get_current_user
+from src.models import Task
+from src.schemas import TaskCreate, TaskUpdate, TaskResponse
 
 router = APIRouter()
+
+
+def task_to_response(task: Task) -> Dict:
+    """Convert Task model to response format."""
+    return {
+        "id": task.id,
+        "user_id": task.user_id,
+        "title": task.title,
+        "description": task.description,
+        "completed": task.completed,
+        "created_at": task.created_at,
+        "updated_at": task.updated_at,
+    }
 
 
 @router.post("", status_code=201, response_model=TaskResponse)
@@ -19,7 +32,7 @@ async def create_task(
     task_data: TaskCreate,
     current_user: Dict[str, str] = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> TaskResponse:
+) -> Dict:
     """Create a new task for the authenticated user."""
     db_task = Task(
         user_id=current_user["user_id"],
@@ -29,7 +42,7 @@ async def create_task(
     session.add(db_task)
     await session.commit()
     await session.refresh(db_task)
-    return db_task
+    return task_to_response(db_task)
 
 
 @router.get("", response_model=List[TaskResponse])
@@ -37,7 +50,7 @@ async def list_tasks(
     status: str = Query("all", regex="^(all|pending|completed)$"),
     current_user: Dict[str, str] = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> List[TaskResponse]:
+) -> List[Dict]:
     """List all tasks for the authenticated user with optional status filtering."""
     query = select(Task).where(Task.user_id == current_user["user_id"])
 
@@ -48,7 +61,7 @@ async def list_tasks(
 
     result = await session.execute(query)
     tasks = result.scalars().all()
-    return tasks
+    return [task_to_response(task) for task in tasks]
 
 
 @router.get("/{id}", response_model=TaskResponse)
@@ -56,7 +69,7 @@ async def get_task(
     id: int,
     current_user: Dict[str, str] = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> TaskResponse:
+) -> Dict:
     """Get a specific task by ID (returns 404 if not owned by user)."""
     query = select(Task).where(
         Task.id == id,
@@ -68,7 +81,7 @@ async def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    return task
+    return task_to_response(task)
 
 
 @router.put("/{id}", response_model=TaskResponse)
@@ -77,7 +90,7 @@ async def update_task(
     task_data: TaskUpdate,
     current_user: Dict[str, str] = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> TaskResponse:
+) -> Dict:
     """Update a task (full update with validation)."""
     query = select(Task).where(
         Task.id == id,
@@ -98,19 +111,24 @@ async def update_task(
     if task_data.description is not None:
         task.description = task_data.description
 
+    # Handle completed field if provided
+    if task_data.completed is not None:
+        task.completed = task_data.completed
+
     task.updated_at = datetime.utcnow()
     await session.commit()
     await session.refresh(task)
-    return task
+    return task_to_response(task)
 
 
 @router.patch("/{id}/complete", response_model=TaskResponse)
 async def toggle_complete(
     id: int,
+    payload: Optional[Dict] = Body(None),
     current_user: Dict[str, str] = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> TaskResponse:
-    """Toggle the completion status of a task."""
+) -> Dict:
+    """Update task completion status. Accepts status field in payload."""
     query = select(Task).where(
         Task.id == id,
         Task.user_id == current_user["user_id"],
@@ -121,11 +139,16 @@ async def toggle_complete(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    task.completed = not task.completed
+    # If payload has completed field, use it; otherwise toggle
+    if payload and "completed" in payload:
+        task.completed = payload["completed"]
+    else:
+        task.completed = not task.completed
+
     task.updated_at = datetime.utcnow()
     await session.commit()
     await session.refresh(task)
-    return task
+    return task_to_response(task)
 
 
 @router.delete("/{id}", status_code=204)

@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, Any
 
-import jwt
+from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -22,14 +22,14 @@ async def get_current_user(
     This dependency:
     1. Extracts the JWT from the Authorization header (Bearer token)
     2. Verifies the signature using BETTER_AUTH_SECRET
-    3. Extracts the user_id from the 'user_id' claim (custom Better Auth claim)
+    3. Extracts the user_id from the 'sub' claim (standard JWT claim from Better Auth)
     4. Returns a dict with the user_id
 
     Args:
         credentials: HTTPAuthCredentials from the Authorization header
 
     Returns:
-        Dict containing user_id extracted from JWT 'user_id' claim
+        Dict containing user_id extracted from JWT 'sub' claim
 
     Raises:
         HTTPException: 401 Unauthorized if token is invalid, expired, or missing
@@ -50,19 +50,13 @@ async def get_current_user(
             token,
             settings.BETTER_AUTH_SECRET,
             algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_aud": False}  # Don't validate audience claim
         )
-    except jwt.ExpiredSignatureError:
-        logger.warning(f"Expired JWT token attempted")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except jwt.InvalidTokenError as e:
+    except JWTError as e:
         logger.warning(f"Invalid JWT token: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
@@ -73,10 +67,10 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Extract user_id from 'user_id' claim (custom Better Auth claim, not standard 'sub')
-    user_id = payload.get("user_id")
+    # Extract user_id from 'sub' claim (standard JWT claim from Better Auth)
+    user_id = payload.get("sub")
     if not user_id:
-        logger.warning("JWT missing 'user_id' claim")
+        logger.warning("JWT missing 'sub' claim")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token format",

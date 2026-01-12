@@ -1,0 +1,24 @@
+# 1. Make sure you're in the right folder
+cd E:\GH-Q4\todo-app-Phase2
+
+# 2. Stage all changes
+git add .
+
+# 3. Commit
+git commit -m "Add Phase 2 implementation - frontend and backend"
+
+# 4. If you haven't added the remote yet
+git remote add origin https://github.com/mustafaqazi/todo-app.git
+
+# 5. (Optional) Verify remote
+git remote -v
+
+# 6. Push to the Phase2 branch on GitHub
+# Two main options:
+
+# Option A: Push to existing Phase2 branch (recommended)
+git push origin main:Phase2
+
+# Option B: If you want your local branch to be called Phase2
+git branch -M Phase2
+git push -u origin Phase2

@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * Main Tasks Dashboard Page
  * Responsive layout: mobile cards, desktop table
@@ -17,10 +15,11 @@
  */
 
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import { TasksContent } from '@/components/TasksContent'
 import { LoadingSkeletons } from '@/components/LoadingSkeletons'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'My Tasks - TODO App',
   description: 'Manage your tasks beautifully',
 }

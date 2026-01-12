@@ -1,20 +1,21 @@
 """Authentication endpoints: signup, login, and token verification."""
 
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlmodel import Session, select
 from typing import Optional
 
-from ..db import get_session
-from ..models import User
-from ..schemas import UserSignup, UserLogin, AuthResponse, VerifyResponse
-from ..utils.password import hash_password, verify_password, validate_password_strength
-from ..utils.jwt import create_access_token, decode_token
-from ..config import settings
+from db import get_session
+from src.models import User
+from src.schemas import UserSignup, UserLogin, AuthResponse, VerifyResponse
+from src.utils.password import hash_password, verify_password, validate_password_strength
+from src.utils.jwt import create_access_token, decode_token
+from config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/sign-up/email", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def signup(
     user_data: UserSignup,
     session: Session = Depends(get_session),
@@ -54,9 +55,12 @@ async def signup(
 
     # Create new user with hashed password
     hashed_pwd = hash_password(user_data.password)
+    now = datetime.utcnow()
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_pwd,
+        created_at=now,
+        updated_at=now,
     )
 
     session.add(new_user)
@@ -77,7 +81,7 @@ async def signup(
     )
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login/email", response_model=AuthResponse)
 async def login(
     user_data: UserLogin,
     session: Session = Depends(get_session),

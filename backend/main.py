@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from db import create_tables, close_db
-from routes import tasks
+from src.routes import tasks, auth
 
 # Configure logging
 logging.basicConfig(
@@ -56,15 +56,19 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",      # add this too — some browsers/environments use 127.0.0.1
+        "http://localhost",           # optional, for root-level requests
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
 # Include routers
-app.include_router(tasks.router, prefix="/api")
+app.include_router(tasks.router, prefix="/api/tasks")
+app.include_router(auth.router, prefix="/api")
 
 
 # Health check endpoint

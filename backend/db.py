@@ -34,6 +34,7 @@ def create_engine():
         connect_args={
             "timeout": 10,
             "command_timeout": 10,
+            "ssl": "require",
         },
     )
 

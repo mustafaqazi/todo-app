@@ -19,10 +19,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { apiPost, apiAuth } from '@/lib/api'
-import { API_ENDPOINTS, VALIDATION } from '@/lib/constants'
+import { apiAuth } from '@/lib/api'
 import { validateEmail, validatePassword } from '@/lib/utils'
 import { useToast } from '@/lib/hooks/useToast'
+import { signUp, signIn } from '@/lib/auth-client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -72,28 +72,25 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const endpoint =
-        mode === 'signup'
-          ? API_ENDPOINTS.AUTH.SIGNUP
-          : API_ENDPOINTS.AUTH.LOGIN
+      let result
 
-      const payload = {
-        email,
-        password,
-        ...(mode === 'signup' && { confirmPassword }),
+      if (mode === 'signup') {
+        // Use Better Auth signup
+        result = await signUp(email, password)
+      } else {
+        // Use Better Auth signin
+        result = await signIn(email, password)
       }
 
-      const response = await apiPost<{ token: string }>(endpoint, payload)
-
-      if (response.error) {
-        showError(response.error.message || 'Authentication failed')
+      if (!result.success) {
+        showError(result.error || 'Authentication failed')
         setIsLoading(false)
         return
       }
 
-      // Store JWT token
-      if (response.data?.token) {
-        apiAuth.setToken(response.data.token)
+      // Store JWT token from Better Auth
+      if (result.data?.token) {
+        apiAuth.setToken(result.data.token)
       }
 
       // Show success toast
@@ -109,6 +106,7 @@ export default function LoginPage() {
       }, 1000)
     } catch (error) {
       showError('An unexpected error occurred')
+      console.error('Auth error:', error)
       setIsLoading(false)
     }
   }

@@ -7,10 +7,11 @@ sqlmodel==0.0.14
 sqlalchemy[asyncio]==2.0.23
 asyncpg==0.29.0
 
-# Security & JWT
+# Security & JWT & Auth
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
+better-auth==0.1.0
 
 # Environment Variables
 python-dotenv==1.0.0

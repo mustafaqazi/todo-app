@@ -17,9 +17,8 @@ export function middleware(request: NextRequest) {
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route))
 
   if (isProtected) {
-    // Check for authentication token
-    const token = request.cookies.get('todo_auth_token')?.value ||
-                 (typeof window !== 'undefined' && localStorage.getItem('todo_auth_token'))
+    // Check for authentication token in cookies
+    const token = request.cookies.get('todo_auth_token')?.value
 
     // If no token, redirect to login
     if (!token) {

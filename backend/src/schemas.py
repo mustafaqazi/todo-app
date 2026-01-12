@@ -85,6 +85,7 @@ class TaskUpdate(BaseModel):
 
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
+    completed: Optional[bool] = None
 
 
 class TaskResponse(BaseModel):

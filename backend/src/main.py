@@ -9,6 +9,7 @@ from sqlmodel import SQLModel
 from .db import engine
 from .routes.tasks import router as tasks_router
 from .routes.auth import router as auth_router
+from config import settings
 
 
 @asynccontextmanager
@@ -36,14 +37,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS configuration for frontend
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# CORS configuration for frontend - loaded from environment via settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    max_age=600,
 )
 
 # Include routers
