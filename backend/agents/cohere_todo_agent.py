@@ -130,13 +130,16 @@ class CohereTodoAgent:
             }
         ]
 
-    async def process_message(
+    def process_message(
         self,
         message: str,
         conversation_history: Optional[list[dict[str, str]]] = None,
         user_email: Optional[str] = None
     ) -> dict[str, Any]:
         """Process a user message with Cohere and return response.
+
+        Note: This is a synchronous method because the Cohere SDK doesn't support async.
+        FastAPI will handle this correctly as long as this method doesn't block the event loop.
 
         Args:
             message: User's message text.

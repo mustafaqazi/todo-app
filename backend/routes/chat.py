@@ -108,8 +108,8 @@ async def chat_endpoint(
         # Get user email from JWT
         user_email = current_user.get("email")
 
-        # Call Cohere API
-        cohere_response = await agent.process_message(
+        # Call Cohere API (synchronous, but FastAPI handles it fine)
+        cohere_response = agent.process_message(
             message=request.message,
             conversation_history=cohere_messages,
             user_email=user_email,
