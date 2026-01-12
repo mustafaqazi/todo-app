@@ -247,3 +247,79 @@ class VerifyResponse(BaseModel):
                 "user_id": "1"
             }
         }
+
+
+class ChatRequest(BaseModel):
+    """Schema for chat endpoint request.
+
+    Attributes:
+        conversation_id: Optional existing conversation ID; if not provided, creates new.
+        message: User's message text (1-5000 characters).
+    """
+
+    conversation_id: Optional[str] = Field(
+        default=None,
+        description="Optional existing conversation UUID; omit to create new conversation"
+    )
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=5000,
+        description="User's message text (1-5000 characters)"
+    )
+
+    class Config:
+        """Pydantic configuration."""
+        json_schema_extra = {
+            "example": {
+                "conversation_id": None,
+                "message": "Add a task to buy milk"
+            }
+        }
+
+    @field_validator("message")
+    @classmethod
+    def message_not_empty(cls, v):
+        """Validate that message is not empty or whitespace-only."""
+        if not v or not v.strip():
+            raise ValueError("Message cannot be empty or whitespace-only")
+        return v.strip()
+
+
+class ChatResponse(BaseModel):
+    """Schema for chat endpoint response.
+
+    Attributes:
+        conversation_id: UUID of the conversation.
+        response: Assistant's response text.
+        tool_calls: Optional list of tool calls made by the assistant.
+    """
+
+    conversation_id: str = Field(
+        ...,
+        description="UUID of the conversation"
+    )
+    response: str = Field(
+        ...,
+        description="Assistant's response text"
+    )
+    tool_calls: Optional[list[dict]] = Field(
+        default=None,
+        description="Optional list of tool calls made (name, parameters, result)"
+    )
+
+    class Config:
+        """Pydantic configuration."""
+        json_schema_extra = {
+            "example": {
+                "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+                "response": "Task 'Buy milk' added successfully! ID: 5",
+                "tool_calls": [
+                    {
+                        "name": "add_task",
+                        "parameters": {"title": "Buy milk"},
+                        "result": {"id": 5}
+                    }
+                ]
+            }
+        }

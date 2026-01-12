@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from config import settings
 from db import create_tables, close_db
 from src.routes import tasks, auth
+from routes import chat
 
 # Configure logging
 logging.basicConfig(
@@ -69,6 +70,7 @@ app.add_middleware(
 # Include routers
 app.include_router(tasks.router, prefix="/api/tasks")
 app.include_router(auth.router, prefix="/api")
+app.include_router(chat.router)  # Chat router has its own prefix
 
 
 # Health check endpoint

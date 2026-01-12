@@ -13,6 +13,9 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 better-auth==0.1.0
 
+# AI & LLM - Cohere Integration
+cohere>=5.0.0
+
 # Environment Variables
 python-dotenv==1.0.0
 

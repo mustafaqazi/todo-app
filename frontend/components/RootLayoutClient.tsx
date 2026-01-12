@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { SessionProvider } from "next-auth/react"
+import { ChatProvider } from "./chat/ChatProvider"
 
 interface Props {
   children: React.ReactNode
@@ -20,5 +22,11 @@ export default function RootLayoutClient({ children }: Props) {
 
   if (!mounted) return null // prevent SSR mismatch
 
-  return <div className={theme}>{children}</div>
+  return (
+    <SessionProvider>
+      <ChatProvider>
+        <div className={theme}>{children}</div>
+      </ChatProvider>
+    </SessionProvider>
+  )
 }

@@ -77,4 +77,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return {"user_id": user_id}
+    # Extract email if available (may be in token from Better Auth)
+    email = payload.get("email") or payload.get("email_verified")
+
+    return {"user_id": user_id, "email": email}
