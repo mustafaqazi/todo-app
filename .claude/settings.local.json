@@ -59,7 +59,11 @@
       "Bash(git commit:*)",
       "Bash(timeout 10 uvicorn:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(timeout 15 uvicorn:*)",
+      "WebFetch(domain:docs.cohere.com)",
+      "WebSearch",
+      "WebFetch(domain:aws.amazon.com)"
     ]
   }
 }

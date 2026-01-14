@@ -1,7 +1,7 @@
 """Cohere API client and todo assistant agent for Phase III.
 
 This module provides Cohere integration for natural language task management.
-Uses command-r-plus model with tool calling for executing MCP tools.
+Uses command-a-03-2025 model with tool calling for executing MCP tools.
 """
 
 import os
@@ -18,11 +18,11 @@ class CohereTodoAgent:
 
     Attributes:
         client: Cohere client instance (initialized with COHERE_API_KEY).
-        model: Model name to use (command-r-plus).
+        model: Model name to use (command-a-03-2025).
         tools: List of tool definitions for Cohere tool calling.
     """
 
-    MODEL = "command-r-plus"
+    MODEL = "command-a-03-2025"
 
     def __init__(self):
         """Initialize Cohere client with API key from environment."""
@@ -156,17 +156,22 @@ class CohereTodoAgent:
             f"{f'The user is logged in as {user_email}.' if user_email else ''}"
         )
 
-        # Build message history for multi-turn conversation
-        messages = conversation_history or []
-        messages.append({"role": "user", "content": message})
-
         try:
             # Call Cohere API with tool definitions
+            # Cohere SDK uses 'message' (singular) and 'chat_history' for conversation history
+            # Note: 'system' parameter is not supported; system context is embedded in the user message
+
+            # Use conversation history as-is (should already be formatted with 'message' key)
+            chat_history = conversation_history or []
+
+            # Prepend system prompt to the user's message
+            user_message = f"{system_prompt}\n\nUser: {message}"
+
             response = self.client.chat(
                 model=self.MODEL,
-                messages=messages,
+                message=user_message,
+                chat_history=chat_history,
                 tools=self.get_tool_definitions(),
-                system=system_prompt,
                 temperature=0.7,
             )
 
@@ -193,9 +198,7 @@ class CohereTodoAgent:
                 "tool_calls": tool_calls if tool_calls else None,
             }
 
-        except cohere.CohereError as e:
-            logger.error("❌ Cohere API error: %s", str(e))
-            raise
         except Exception as e:
-            logger.error("❌ Unexpected error in Cohere agent: %s", str(e))
+            # Handle any Cohere-related errors (API errors, timeouts, etc.)
+            logger.error("❌ Cohere agent error: %s - %s", type(e).__name__, str(e))
             raise

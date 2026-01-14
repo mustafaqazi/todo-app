@@ -80,39 +80,54 @@ async def chat_endpoint(
         )
 
     try:
+        logger.debug(f"📌 Chat endpoint called: user_id={user_id}, conversation_id={request.conversation_id}, message={request.message[:50]}...")
+
         # Get or create conversation
+        logger.debug(f"🔄 Calling get_or_create_conversation...")
         conversation = await get_or_create_conversation(
             session, user_id, request.conversation_id
         )
+        logger.debug(f"✅ Got conversation: {conversation.id}")
 
         # Load last 20 messages for context
+        logger.debug(f"📜 Loading message history for conversation {conversation.id}")
         message_history = await get_last_n_messages(
             session, conversation.id, user_id, n=20
         )
+        logger.debug(f"📊 Loaded {len(message_history)} messages")
 
         # Convert message history to Cohere format
+        # Cohere expects chat_history with 'User' and 'Chatbot' roles and 'message' key
+        role_map = {"user": "User", "assistant": "Chatbot"}
         cohere_messages = [
-            {"role": msg.role, "content": msg.content}
+            {"role": role_map.get(msg.role, msg.role), "message": msg.content}
             for msg in message_history
         ]
+        logger.debug(f"📝 Cohere chat history: {len(cohere_messages)} messages")
 
         # Initialize Cohere agent
+        logger.debug(f"🤖 Initializing Cohere agent...")
         agent = CohereTodoAgent()
 
         # Get user email from JWT
         user_email = current_user.get("email")
+        logger.debug(f"👤 User email: {user_email}")
 
         # Call Cohere API (synchronous, but FastAPI handles it fine)
+        logger.debug(f"🔄 Calling Cohere with message: {request.message[:50]}...")
         cohere_response = agent.process_message(
             message=request.message,
             conversation_history=cohere_messages,
             user_email=user_email,
         )
+        logger.debug(f"✅ Cohere response received: {len(cohere_response.get('response', ''))} chars")
 
         # Store user message
+        logger.debug(f"💬 Storing user message to conversation {conversation.id}")
         await append_message(
             session, conversation.id, user_id, "user", request.message
         )
+        logger.debug(f"✅ User message stored")
 
         # Execute tool calls if present
         tool_call_results = []
@@ -166,7 +181,9 @@ async def chat_endpoint(
         )
 
         # Commit transaction
+        logger.debug(f"💾 Committing transaction...")
         await session.commit()
+        logger.debug(f"✅ Transaction committed successfully")
 
         logger.info(
             f"✅ Chat request processed for user {user_id}, "
@@ -180,11 +197,13 @@ async def chat_endpoint(
         )
 
     except Exception as e:
-        logger.error(f"❌ Chat endpoint error: {str(e)}")
+        logger.error(f"❌ Chat endpoint error: {type(e).__name__}: {str(e)}")
+        logger.error(f"📋 Full exception traceback:", exc_info=True)
         await session.rollback()
 
         # Return 503 for Cohere API errors
-        if "Cohere" in str(e):
+        error_str = str(e).lower()
+        if "cohere" in error_str or "api" in error_str or type(e).__name__.lower().find("cohere") >= 0:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="AI service temporarily unavailable. Please try again.",
@@ -193,5 +212,5 @@ async def chat_endpoint(
         # Generic 500 for other errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request.",
+            detail=f"An error occurred: {type(e).__name__}",
         )

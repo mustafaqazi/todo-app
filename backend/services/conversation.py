@@ -36,8 +36,11 @@ async def get_or_create_conversation(
     Raises:
         ValueError: If conversation_id is provided but not found or owned by different user.
     """
+    logger.debug(f"📌 get_or_create_conversation called: user_id={user_id}, conversation_id={conversation_id}")
+
     if conversation_id:
         try:
+            logger.debug(f"🔍 Attempting to fetch conversation {conversation_id} for user {user_id}")
             # Fetch existing conversation with strict user_id check
             stmt = select(Conversation).where(
                 and_(
@@ -47,21 +50,26 @@ async def get_or_create_conversation(
             )
             result = await session.execute(stmt)
             conversation = result.scalars().first()
-            if not conversation:
-                raise ValueError(
-                    f"Conversation {conversation_id} not found or not owned by user {user_id}"
+            logger.debug(f"📊 Query result: {'Found' if conversation else 'Not found'}")
+
+            if conversation:
+                logger.info(f"✅ Loaded existing conversation: {conversation_id}")
+                return conversation
+            else:
+                logger.warning(
+                    f"⚠️ Conversation {conversation_id} not found for user {user_id}. Creating new conversation."
                 )
-            logger.info(f"✅ Loaded existing conversation: {conversation_id}")
-            return conversation
-        except ValueError as e:
-            logger.error(f"❌ Error loading conversation: {e}")
-            raise
+        except Exception as e:
+            logger.warning(f"⚠️ Error loading conversation {conversation_id}: {e}. Creating new conversation.")
 
     # Create new conversation
+    logger.debug(f"🆕 Creating new conversation for user {user_id}")
     conversation = Conversation(user_id=user_id)
     session.add(conversation)
+    logger.debug(f"💾 Added conversation to session, flushing to get ID...")
     await session.flush()  # Ensure ID is generated
-    logger.info(f"✅ Created new conversation: {conversation.id}")
+    logger.info(f"✅ Created new conversation: {conversation.id} for user {user_id}")
+    logger.debug(f"🎯 Conversation object: id={conversation.id}, user_id={conversation.user_id}, created_at={conversation.created_at}")
     return conversation
 
 
@@ -125,6 +133,8 @@ async def append_message(
     Raises:
         ValueError: If role is not 'user' or 'assistant'.
     """
+    logger.debug(f"📝 append_message called: conversation_id={conversation_id}, user_id={user_id}, role={role}, content_len={len(content)}")
+
     if role not in ("user", "assistant"):
         raise ValueError(f"Invalid role '{role}'. Must be 'user' or 'assistant'.")
 
@@ -135,8 +145,10 @@ async def append_message(
         content=content,
         tool_calls=tool_calls
     )
+    logger.debug(f"📌 Message object created: id={message.id}, role={role}")
     session.add(message)
     await session.flush()
+    logger.debug(f"✅ Message flushed: id={message.id}")
     logger.info(
         f"✅ Appended {role} message to conversation {conversation_id}: {len(content)} chars"
     )
