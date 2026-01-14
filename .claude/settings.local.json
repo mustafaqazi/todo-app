@@ -56,7 +56,10 @@
       "Bash(tasklist:*)",
       "Bash(npx tsc:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nspec: Create Phase III AI Todo Chatbot comprehensive specification\n\nCreate detailed Phase III specification with:\n- 7 prioritized user stories \\(P1: core features; P2: polish\\)\n- 37 functional requirements organized by domain \\(frontend, backend, database, security\\)\n- 10 measurable success criteria \\(3s latency, 100% success rate, conversation persistence, multi-user isolation\\)\n- 35+ acceptance scenarios \\(Given/When/Then format\\)\n- 8 edge cases \\(rate limiting, auth expiry, message truncation, etc.\\)\n- 4 key entities \\(Conversation, Message, MCP Tool, Cohere API\\)\n- Manual verification checklist \\(15 items for judges\\)\n- Complete constraints \\(tech stack: Next.js, FastAPI, Cohere SDK, SQLModel\\)\n- Assumptions documented \\(API key in env, Phase II working, localStorage available\\)\n- Out-of-scope items listed \\(voice input, Lottie, new auth, file upload\\)\n\nQuality validation passed:\n✓ No implementation details \\(feature-agnostic requirements\\)\n✓ No [NEEDS CLARIFICATION] markers \\(all aspects fully specified\\)\n✓ All requirements testable and unambiguous\n✓ Success criteria measurable and technology-agnostic\n✓ Edge cases identified and documented\n✓ Scope clearly bounded\n\nFeature branch: 004-phase-iii-chatbot\nSpecification ready for planning phase: /sp.plan\n\nCo-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(timeout 10 uvicorn:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }

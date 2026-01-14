@@ -10,7 +10,7 @@ from sqlmodel import select, func
 
 from db import get_session
 from dependencies import get_current_user
-from models import Task
+from src.models import Task
 from schemas import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
 
 logger = logging.getLogger(__name__)

@@ -20,13 +20,7 @@ from services.conversation import (
     append_message,
 )
 from agents.cohere_todo_agent import CohereTodoAgent
-from mcp.tools import (
-    add_task,
-    list_tasks,
-    complete_task,
-    delete_task,
-    update_task,
-)
+from mcp.tools import add_task, list_tasks, complete_task, delete_task, update_task
 
 logger = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, F
 from sqlmodel import Field, SQLModel, Relationship
 
 
-class Task(SQLModel, table=True, extend_existing=True):
+class Task(SQLModel, table=True):
     """Task model representing a TODO item in the database.
 
     Attributes:
@@ -70,7 +70,7 @@ class Task(SQLModel, table=True, extend_existing=True):
         arbitrary_types_allowed = True
 
 
-class User(SQLModel, table=True, extend_existing=True):
+class User(SQLModel, table=True):
     """User model for authentication.
 
     Attributes:
@@ -112,7 +112,7 @@ class User(SQLModel, table=True, extend_existing=True):
         arbitrary_types_allowed = True
 
 
-class Conversation(SQLModel, table=True, extend_existing=True):
+class Conversation(SQLModel, table=True):
     """Conversation model for storing chat sessions.
 
     Attributes:
@@ -157,7 +157,7 @@ class Conversation(SQLModel, table=True, extend_existing=True):
         arbitrary_types_allowed = True
 
 
-class Message(SQLModel, table=True, extend_existing=True):
+class Message(SQLModel, table=True):
     """Message model for storing chat messages and tool calls.
 
     Attributes:

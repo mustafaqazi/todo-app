@@ -6,7 +6,7 @@ from typing import Optional
 
 from db import get_session
 from dependencies import get_current_user
-from models import User
+from src.models import User
 from schemas import UserSignup, UserLogin, AuthResponse, VerifyResponse
 from utils.password import hash_password, verify_password, validate_password_strength
 from utils.jwt import create_access_token, decode_token

@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_
 from sqlmodel import Session
 
-from models import Conversation, Message
+# Import from src.models to ensure unified model registry (Phase II + Phase III)
+from src.models import Conversation, Message
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
-from models import Task
+from src.models import Task
 
 logger = logging.getLogger(__name__)
 
