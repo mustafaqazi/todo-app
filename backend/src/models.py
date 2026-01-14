@@ -108,8 +108,8 @@ class Message(SQLModel, table=True):
         description="Unique message identifier (UUID)"
     )
     conversation_id: UUID = Field(
-        index=True,
-        description="Parent conversation ID (foreign key to conversation.id)"
+        sa_column=Column(Uuid, ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False, index=True),
+        description="Parent conversation ID"
     )
     user_id: str = Field(
         sa_column=Column(String(255), nullable=False, index=True),
