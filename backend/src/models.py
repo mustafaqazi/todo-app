@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, ForeignKey, Index
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, ForeignKey, Index, Uuid
 
 
 class User(SQLModel, table=True):
@@ -89,7 +89,7 @@ class Message(SQLModel, table=True):
 
     Attributes:
         id: Primary key, UUID (unique per message).
-        conversation_id: Foreign key to Conversation.
+        conversation_id: Foreign key to Conversation (UUID).
         user_id: Owner of the message (from JWT user_id claim, indexed for security).
         role: Message role ('user' or 'assistant').
         content: Message text content.
@@ -108,8 +108,8 @@ class Message(SQLModel, table=True):
         description="Unique message identifier (UUID)"
     )
     conversation_id: UUID = Field(
-        sa_column=Column(String, ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False, index=True),
-        description="Parent conversation ID"
+        index=True,
+        description="Parent conversation ID (foreign key to conversation.id)"
     )
     user_id: str = Field(
         sa_column=Column(String(255), nullable=False, index=True),
