@@ -89,6 +89,17 @@
   - Confirm it returns user dict with at least `user_id` and `email` fields
   - Add docstring: "Extracts authenticated user_id from JWT; used in all endpoints requiring auth"
 
+### Rate Limiting Setup (Backend)
+
+- [ ] T015A [P] Create rate limiter utility in `backend/utils/rate_limit.py`:
+  - Implement per-user rate limiting: 10 Cohere calls/minute per user_id
+  - Use in-memory dict with timestamps: `{user_id: [timestamp1, timestamp2, ...]}`
+  - Function: `async def check_rate_limit(user_id: str, limit: int = 10, window: int = 60) -> bool`
+    - Returns True if under limit; False if exceeded
+    - Clean old timestamps (>60s ago) from tracking
+  - Alternative: Use Redis if available in backend stack; fallback to in-memory
+  - Note: Will be called in chat endpoint (T032) before Cohere API call
+
 ### Frontend API Extension
 
 - [ ] T016 Extend `frontend/lib/api.ts` with chatWithAssistant() function:
@@ -249,6 +260,7 @@
 - [ ] T032 [US2] Implement POST /api/{user_id}/chat endpoint in `backend/routes/chat.py`:
   - Auth: `current_user = Depends(verify_jwt)`
   - Validate user_id: `if current_user["user_id"] != user_id: raise HTTPException(403)`
+  - **Rate limit check**: Call `check_rate_limit(user_id)` from T015A; if exceeded, return 503 with message "I'm getting a lot of requests. Please wait a moment and try again."
   - Fetch conversation: `if body.conversation_id: conv = await get_conversation(...) else: conv = await create_conversation(...)`
   - Fetch history: `messages = await get_last_n_messages(session, conv.id, user_id, 20)`
   - Call agent: `response = await cohere_agent.run(user_id, body.message, messages)`
@@ -382,15 +394,17 @@
 ### Frontend: Conversation Recovery
 
 - [ ] T046 [P] [US4] Update ChatWindow to load conversation on mount:
-  - On component mount: `useEffect(() => { if (conversationId in localStorage) { loadConversation(id) } }, [])`
-  - Fetch messages from backend: `GET /api/{user_id}/chat/{conversation_id}` (if endpoint exists) or load from messages table via chat calls
-  - Or: Store messages in localStorage on every send (lightweight approach)
-  - Render messages on UI
+  - On component mount: `useEffect(() => { const convId = localStorage.getItem("conversation_id"); if (convId) { loadCachedMessages(convId) } }, [])`
+  - Load cached messages from localStorage: `const messages = JSON.parse(localStorage.getItem("messages") || "[]")`
+  - Render messages on UI immediately (instant UX; don't wait for backend)
+  - If no cached messages: Chat shows empty state with welcome message
 
-- [ ] T047 [P] [US4] Persist full message history in useChat hook:
-  - On every message append: Save entire conversation to localStorage
-  - Example: `localStorage.setItem("messages", JSON.stringify(messages))`
-  - On chat open: Restore: `const saved = localStorage.getItem("messages")`
+- [ ] T047 [P] [US4] Persist conversation data in useChat hook:
+  - **On first message send**: Backend creates conversation, returns `conversation_id`; store in localStorage: `localStorage.setItem("conversation_id", id)`
+  - **On every message append**: Save full message list to localStorage: `localStorage.setItem("messages", JSON.stringify(messages))`
+  - **On page reload**: Restore both `conversation_id` and `messages` from localStorage
+  - This ensures instant page load + conversation context preserved
+  - Note: Backend is source of truth in Neon; localStorage is cache for fast UX
 
 ### Backend: Conversation History Endpoint (Optional)
 

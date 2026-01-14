@@ -172,11 +172,11 @@ Two users logged into different accounts chat with the bot simultaneously. Each 
 - **FR-013**: Backend MUST expose `POST /api/{user_id}/chat` endpoint requiring JWT in `Authorization: Bearer <token>` header
 - **FR-014**: Endpoint MUST validate path `user_id` matches JWT `user_id`; return 403 Forbidden if mismatch
 - **FR-015**: Request body MUST accept `{ "conversation_id": "string (optional)", "message": "string (required)" }` and validate message non-empty, ≤5000 chars
-- **FR-016**: Endpoint MUST retrieve conversation from Neon DB (if conversation_id provided); fetch all messages for context (limit last 10 messages to avoid token bloat)
+- **FR-016**: Endpoint MUST retrieve conversation from Neon DB (if conversation_id provided); fetch all messages for context (limit last 20 messages to avoid token bloat)
 - **FR-017**: Endpoint MUST call Cohere API with `co.chat()` using model "command-r-plus" (or latest available), passing system prompt + conversation context + user message
 - **FR-018**: System prompt MUST define assistant as "You are a helpful TODO assistant. Use tools to manage tasks: add, list, complete, delete, and update. Always confirm every action. Be concise."
 - **FR-019**: Endpoint MUST expose 5 MCP tools to Cohere: `add_task`, `list_tasks`, `complete_task`, `delete_task`, `update_task`, each filtered by authenticated `user_id`
-- **FR-020**: If Cohere response includes tool calls, backend MUST execute each tool via MPC SDK, collect results, and optionally pass back to Cohere for synthesis (one retry round max)
+- **FR-020**: If Cohere response includes tool calls, backend MUST execute each tool via MCP SDK, collect results, and optionally pass back to Cohere for synthesis (one retry round max)
 - **FR-021**: Endpoint MUST store user message in Neon `messages` table with `role='user'`, store assistant response with `role='assistant'`, include `conversation_id`, `user_id`, timestamps
 - **FR-022**: Response MUST return `{ "conversation_id": "uuid", "response": "string", "tool_calls": "[optional array of executed tools]" }` and HTTP 200
 - **FR-023**: Endpoint MUST handle Cohere API errors (timeout, rate limit, invalid response) gracefully: log error, return 503 Service Unavailable, respond to user "Sorry, I had trouble processing that. Please try again."

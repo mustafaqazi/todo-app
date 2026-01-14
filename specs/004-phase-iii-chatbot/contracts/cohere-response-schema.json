@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cohere Chat Response Schema",
+  "description": "Expected structure of Cohere API response for chat completion with tool calling",
+  "type": "object",
+  "required": ["text"],
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "Assistant response text (main conversational response)"
+    },
+    "tool_calls": {
+      "type": "array",
+      "description": "Array of tool calls that Cohere requests the backend to execute",
+      "items": {
+        "type": "object",
+        "required": ["name", "parameters"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool name (e.g., 'add_task', 'list_tasks', 'complete_task', 'delete_task', 'update_task')"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Tool parameters (structure varies by tool)",
+            "properties": {
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "task_id": { "type": "integer" },
+              "status": { "type": "string", "enum": ["pending", "completed", "all"] }
+            }
+          }
+        }
+      }
+    },
+    "stop_reason": {
+      "type": "string",
+      "description": "Reason for response termination (e.g., 'END_TURN', 'TOOL_CALLS')",
+      "enum": ["END_TURN", "TOOL_CALLS", "MAX_TOKENS"]
+    }
+  },
+  "examples": [
+    {
+      "text": "I've created a new task called 'Buy milk'.",
+      "tool_calls": [
+        {
+          "name": "add_task",
+          "parameters": {
+            "title": "Buy milk",
+            "description": null
+          }
+        }
+      ],
+      "stop_reason": "TOOL_CALLS"
+    },
+    {
+      "text": "You have 3 pending tasks and 2 completed tasks.",
+      "tool_calls": [
+        {
+          "name": "list_tasks",
+          "parameters": {
+            "status": "all"
+          }
+        }
+      ],
+      "stop_reason": "TOOL_CALLS"
+    },
+    {
+      "text": "I'm not sure what you'd like me to do. Could you be more specific?",
+      "tool_calls": [],
+      "stop_reason": "END_TURN"
+    }
+  ]
+}

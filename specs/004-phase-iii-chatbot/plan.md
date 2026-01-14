@@ -177,9 +177,30 @@ From `.specify/memory/constitution.md` (v2.0.0):
 **Rationale**: localStorage stores `conversation_id` for instant resume; Neon DB stores full message history for stateless recovery. Judges can refresh page mid-conversation → conversation resumes perfectly.
 
 **Implementation**:
-- Frontend: Store `conversation_id` in localStorage on first message
-- Backend: Fetch conversation + messages from Neon using `conversation_id`; append new messages
-- Sync: Frontend always passes `conversation_id` to backend in request body
+
+1. **On First Message Send**:
+   - Frontend sends message with empty/null `conversation_id`
+   - Backend creates new conversation, returns `conversation_id` (UUID)
+   - Frontend stores `conversation_id` in localStorage (persists across refreshes)
+
+2. **On Page Reload**:
+   - Frontend checks localStorage for `conversation_id`
+   - If found: Displays cached messages from localStorage (instant UX)
+   - If not found: Chat starts empty (new conversation on next message)
+
+3. **On Subsequent Messages**:
+   - Frontend always passes stored `conversation_id` in request body
+   - Backend fetches latest messages from Neon (last 20) for context
+   - Cohere receives full context; conversation is coherent
+
+4. **Sync Strategy**:
+   - **Frontend cache**: Store all messages in localStorage as user types and receives responses
+   - **Backend truth**: Neon DB is source of truth for persistence; backend returns full history if needed
+   - **Benefit**: Minimizes backend load; localStorage serves as front-line cache; instant message display
+
+**Frontend localStorage Keys**:
+- `conversation_id`: Current conversation UUID
+- `messages`: Array of message objects `[{role, content, timestamp}, ...]` (optional cache for instant render)
 
 ---
 
