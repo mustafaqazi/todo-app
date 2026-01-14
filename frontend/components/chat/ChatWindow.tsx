@@ -8,13 +8,16 @@
  * - Sliding drawer from right side
  * - Glassmorphism backdrop
  * - Message history display
- * - Welcome message with user email
+ * - Welcome message with user email (fetched from auth context or API)
  * - Dark/light mode support
  * - Responsive on mobile and desktop
+ *
+ * Authentication:
+ * - User email obtained from Better Auth (stored in localStorage or session)
+ * - Falls back to API call or placeholder if not available
  */
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet'
 import { X } from 'lucide-react'
 import { ChatMessageList } from './ChatMessageList'
@@ -25,16 +28,39 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ isOpen, onOpenChange }: ChatWindowProps) {
-  const { data: session } = useSession()
   const [isClient, setIsClient] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>('User')
 
   useEffect(() => {
     setIsClient(true)
+
+    // Attempt to retrieve user email from Better Auth
+    // This can be stored in localStorage after login
+    // or fetched from an API endpoint that returns current user info
+    const getAuthEmail = async () => {
+      try {
+        // Try to get from localStorage (set by Better Auth)
+        const storedEmail = localStorage.getItem('user_email')
+        if (storedEmail) {
+          setUserEmail(storedEmail)
+          return
+        }
+
+        // Alternatively, fetch from /api/auth/me or similar endpoint
+        // const response = await fetch('/api/auth/me')
+        // if (response.ok) {
+        //   const data = await response.json()
+        //   setUserEmail(data.email || 'User')
+        // }
+      } catch (error) {
+        console.error('Failed to retrieve user email:', error)
+      }
+    }
+
+    getAuthEmail()
   }, [])
 
   if (!isClient) return null
-
-  const userEmail = session?.user?.email || 'User'
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>

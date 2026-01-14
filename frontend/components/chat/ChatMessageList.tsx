@@ -3,10 +3,14 @@
 /**
  * ChatMessageList Component
  * Displays welcome message, message history, and input area
+ *
+ * Authentication:
+ * - Uses JWT token from Better Auth (stored in localStorage or auth state)
+ * - Centralized API client handles JWT attachment automatically
+ * - User ID extracted from JWT by backend
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { useChat, type Message as ChatMessage } from '@/hooks/useChat'
 import { chatWithAssistant, type ChatRequest } from '@/lib/api'
 import { MessageBubble } from './MessageBubble'
@@ -18,7 +22,6 @@ interface ChatMessageListProps {
 }
 
 export function ChatMessageList({ userEmail }: ChatMessageListProps) {
-  const { data: session } = useSession()
   const {
     messages,
     currentConversationId,
@@ -56,10 +59,10 @@ Try saying things like:
 
   // Handle sending a message to the API
   const handleSendMessage = async (messageText: string) => {
-    if (!session?.user?.id || !currentConversationId) {
+    if (!currentConversationId) {
       toast({
         title: 'Error',
-        description: 'User session not found. Please refresh the page.',
+        description: 'Conversation not initialized. Please refresh the page.',
         variant: 'destructive',
       })
       return
@@ -69,12 +72,13 @@ Try saying things like:
 
     try {
       // Send to backend
+      // User ID is extracted from JWT by the API client and backend
       const payload: ChatRequest = {
         conversation_id: currentConversationId,
         message: messageText,
       }
 
-      const response = await chatWithAssistant(session.user.id, payload)
+      const response = await chatWithAssistant(payload)
 
       if (response.error) {
         toast({

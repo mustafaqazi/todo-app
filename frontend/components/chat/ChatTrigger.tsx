@@ -5,15 +5,19 @@
  * Floating chat bubble in bottom-right corner
  *
  * Features:
- * - Only visible when authenticated
+ * - Visible when user is authenticated (JWT-based via Better Auth)
  * - Gradient teal/emerald colors (light/dark mode aware)
  * - Pulse animation for subtle attention
  * - Smooth open/close animations
  * - Responsive positioning
+ *
+ * Authentication:
+ * - JWT token is stored by Better Auth
+ * - Renders bubble if client-side; chat endpoint enforces auth at API boundary
+ * - If user is not authenticated, API calls will return 401
  */
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { MessageCircle } from 'lucide-react'
 
 interface ChatTriggerProps {
@@ -21,15 +25,15 @@ interface ChatTriggerProps {
 }
 
 export function ChatTrigger({ onOpen }: ChatTriggerProps) {
-  const { data: session, status } = useSession()
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // Only show when authenticated and client-side rendered
-  if (!isClient || status !== 'authenticated') {
+  // Only render when client-side (prevents SSR mismatch)
+  // Authentication is enforced at API level (JWT validation)
+  if (!isClient) {
     return null
   }
 
