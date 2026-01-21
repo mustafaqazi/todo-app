@@ -93,8 +93,8 @@
 - [x] T037 [P] Lint frontend chart: `helm lint k8s/helm-charts/todo-frontend` (must pass with no warnings) ✓ PASS
 - [x] T038 [P] Template backend chart: `helm template todo-backend k8s/helm-charts/todo-backend > /tmp/backend-manifest.yaml` (validate YAML output) ✓ Valid YAML
 - [x] T039 [P] Template frontend chart: `helm template todo-frontend k8s/helm-charts/todo-frontend > /tmp/frontend-manifest.yaml` (validate YAML output) ✓ Valid YAML
-- [ ] T040 [P] Dry-run backend install: `helm install --dry-run todo-backend k8s/helm-charts/todo-backend --set image.pullPolicy=Never`
-- [ ] T041 [P] Dry-run frontend install: `helm install --dry-run todo-frontend k8s/helm-charts/todo-frontend --set image.pullPolicy=Never`
+- [x] T040 [P] Dry-run backend install: `helm install --dry-run todo-backend k8s/helm-charts/todo-backend --set image.pullPolicy=Never` ✓ SUCCESS
+- [x] T041 [P] Dry-run frontend install: `helm install --dry-run todo-frontend k8s/helm-charts/todo-frontend --set image.pullPolicy=Never` ✓ SUCCESS
 
 ### Minikube Deployment for User Story 1
 

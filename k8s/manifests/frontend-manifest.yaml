@@ -1,0 +1,112 @@
+---
+# Source: todo-frontend/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-frontend
+  labels:
+    helm.sh/chart: todo-frontend-1.0.0
+    app.kubernetes.io/name: todo-frontend
+    app.kubernetes.io/instance: todo-frontend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+      nodePort: 30000
+  selector:
+    app.kubernetes.io/name: todo-frontend
+    app.kubernetes.io/instance: todo-frontend
+---
+# Source: todo-frontend/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-frontend
+  labels:
+    helm.sh/chart: todo-frontend-1.0.0
+    app.kubernetes.io/name: todo-frontend
+    app.kubernetes.io/instance: todo-frontend
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: todo-frontend
+      app.kubernetes.io/instance: todo-frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: todo-frontend
+        app.kubernetes.io/instance: todo-frontend
+    spec:
+      serviceAccountName: todo-frontend
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: todo-frontend
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+          image: "todo-frontend:latest"
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          # Environment variables (public, frontend-visible)
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://todo-backend:8000"
+
+          # Readiness probe: is pod ready to accept traffic?
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Liveness probe: should pod be restarted?
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 3
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Resource requests and limits
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      dnsPolicy: ClusterFirst
+---
+# Source: todo-frontend/templates/deployment.yaml
+---

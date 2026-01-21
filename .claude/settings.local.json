@@ -63,7 +63,14 @@
       "Bash(timeout 15 uvicorn:*)",
       "WebFetch(domain:docs.cohere.com)",
       "WebSearch",
-      "WebFetch(domain:aws.amazon.com)"
+      "WebFetch(domain:aws.amazon.com)",
+      "Bash(helm lint:*)",
+      "Bash(helm template:*)",
+      "Bash(docker --version:*)",
+      "Bash(minikube version:*)",
+      "Bash(kubectl version:*)",
+      "Bash(docker build:*)",
+      "Bash(helm install:*)"
     ]
   }
 }
