@@ -1,6 +1,6 @@
-# Phase II–III Todo Full-Stack Web Application + AI Chatbot Constitution
+# Phase II–III–IV Todo Full-Stack Web Application + AI Chatbot + Kubernetes Constitution
 
-> **Purpose**: Establish non-negotiable principles and standards for integrated Phase II (persistent multi-user TODO web app) and Phase III (AI-powered conversational chatbot) development. Both phases share backend infrastructure, authentication, database, and API layers for seamless integration and zero duplication.
+> **Purpose**: Establish non-negotiable principles and standards for integrated Phase II (persistent multi-user TODO web app), Phase III (AI-powered conversational chatbot), and Phase IV (local Kubernetes deployment) development. All phases share backend infrastructure, containerization, orchestration, authentication, database, and API layers for seamless integration, demo reproducibility, and zero duplication.
 
 ## Core Principles
 
@@ -68,14 +68,16 @@ Stack is fixed and non-negotiable. Adding dependencies requires explicit constit
 
 ### V. Modular Architecture & Monorepo Structure
 
-Single repository with organized subdirectories ensures scalability and clarity. Phase II and Phase III share backend; frontend UI extends Phase II with chatbot component.
+Single repository with organized subdirectories ensures scalability and clarity. Phase II and Phase III share backend; frontend UI extends Phase II with chatbot component. Phase IV adds containerization and orchestration layers without modifying Phase II–III code.
 
 **Structure**:
-- `/specs/` — All specifications (overview, architecture, features, api, database, ui, mcp-tools)
-- `/frontend/` — Next.js application extending Phase II with chatbot component
-- `/backend/` — FastAPI application serving both Phase II tasks and Phase III chat
+- `/specs/` — All specifications (overview, architecture, features, api, database, ui, mcp-tools, infra)
+- `/frontend/` — Next.js application extending Phase II with chatbot component (unchanged by Phase IV)
+- `/backend/` — FastAPI application serving both Phase II tasks and Phase III chat (unchanged by Phase IV)
 - `/agents/` — Agentic orchestrators (chatbot-orchestrator, conversation-manager, mcp-tool-executor, user-info-provider, etc.)
 - `/skills/` — Stateful skill modules wrapping API/MCP calls for agents
+- `/docker/` — Container definitions (frontend.Dockerfile, backend.Dockerfile) ⭐ Phase IV
+- `/k8s/` — Kubernetes/Helm charts and manifests (helm-charts/, manifests/, secrets/) ⭐ Phase IV
 - `/.specify/` — Spec-Kit Plus templates, scripts, and memory
 - `/history/prompts/` — Prompt History Records (PHR)
 - `/history/adr/` — Architecture Decision Records (ADR)
@@ -161,6 +163,101 @@ Phase III integrates Cohere API for natural language understanding and tool orch
 - **Stateless Design**: Each `/api/{user_id}/chat` request includes full conversation history (retrieved from DB); Cohere receives only necessary context
 - **Tool Calling**: Cohere API responses include tool calls; backend executes via MCP tools; results returned to Cohere for synthesis into final response
 - **Error Handling**: Cohere timeouts/rate limits → 503 Service Unavailable; API errors logged anonymously; user sees generic friendly message
+
+### XII. Cloud-Native Containerization & Orchestration (Phase IV)
+
+Phase IV deploys Phase II + III application to local Kubernetes (Minikube) using Docker containers, Helm charts, and AI-assisted infrastructure tooling. Zero rewrites; 100% code reuse from Phases II–III.
+
+**Non-negotiable rules**:
+
+**Docker & Containerization**:
+- Frontend Dockerfile: Node.js 20-alpine build stage → nginx:alpine serve stage (multi-stage mandatory)
+- Backend Dockerfile: Python 3.12-slim → UV package manager → uvicorn/gunicorn server (multi-stage mandatory)
+- No root users in containers; use non-root UID (e.g., 1000 for app user)
+- Health checks: readiness & liveness probes defined in Kubernetes manifests (not Dockerfiles)
+- Image tags: `<app-name>:latest` or `:v1` for local Minikube use
+- Build & load: Use `minikube image load` for local registry or Docker Desktop integration
+- Gordon AI used for Dockerfile generation/optimization wherever possible; show AI prompts in commit history
+
+**Kubernetes & Helm Charts**:
+- Local cluster: Minikube (docker driver on Windows, preferred for simplicity)
+- One Helm chart per service (frontend & backend separate charts)
+- Chart structure: `Chart.yaml`, `values.yaml`, `templates/` (deployment.yaml, service.yaml, optional ingress.yaml)
+- Deployments: configurable replicas (default 1–2), rollingUpdate strategy, resource requests/limits
+- Services: ClusterIP for backend, NodePort or LoadBalancer for frontend access
+- Probes: readinessProbe (HTTP GET /health or equiv, 10s timeout), livenessProbe (same, 30s timeout)
+- Values: all configurable env vars, image tags, replicas, resources defined in `values.yaml`
+- kubectl-ai or Kagent used for manifest generation, debugging, and cluster health analysis
+
+**Secret & Configuration Management**:
+- NEVER hardcode secrets (DATABASE_URL, BETTER_AUTH_SECRET, COHERE_API_KEY) in charts or manifests
+- Kubernetes Secrets created via `kubectl create secret generic` or Helm `--set-string` at deployment time
+- Secrets mounted as environment variables in Deployment spec (NOT ConfigMaps)
+- `.env` files (local) and `.env.example` (committed) for development reference
+- Helm values can reference pre-created secrets by name; charts assume secrets exist before deployment
+
+**Local Minikube Deployment Flow**:
+1. `minikube start --driver=docker` to initialize cluster
+2. Create Kubernetes Secrets: `kubectl create secret generic app-secrets --from-literal=DATABASE_URL=... --from-literal=BETTER_AUTH_SECRET=... --from-literal=COHERE_API_KEY=...`
+3. Build and load Docker images: `docker build -f docker/frontend.Dockerfile -t todo-frontend:latest .` → `minikube image load todo-frontend:latest`
+4. Helm install: `helm install todo-frontend ./k8s/helm-charts/todo-frontend --values values-override.yaml` and `helm install todo-backend ./k8s/helm-charts/todo-backend --values values-override.yaml`
+5. Access frontend: `minikube service todo-frontend` (opens browser with NodePort URL)
+6. Validate: `kubectl get pods`, `kubectl logs`, `minikube dashboard` for visual inspection
+
+**AI-Assisted DevOps Workflow**:
+- **Gordon AI**: Use for Dockerfile optimization, multi-stage design, image size reduction
+- **kubectl-ai**: Use for manifest generation ("generate Helm chart for FastAPI backend with 2 replicas"), debugging ("why is pod failing?"), scaling decisions
+- **Kagent**: Use for cluster health analysis, resource optimization, bottleneck identification
+- Spec-driven infra: Write infrastructure specs first → AI generates YAML/Helm → validate → apply
+- Show AI usage: Commit messages include AI tool names and prompts (e.g., "infra: Add Helm chart (generated via kubectl-ai prompt)")
+
+**Monorepo Structure Addition for Phase IV**:
+```
+/docker/
+  ├── frontend.Dockerfile     # Multi-stage Next.js build
+  └── backend.Dockerfile      # Multi-stage FastAPI build
+
+/k8s/
+  ├── helm-charts/
+  │   ├── todo-frontend/
+  │   │   ├── Chart.yaml
+  │   │   ├── values.yaml
+  │   │   └── templates/
+  │   │       ├── deployment.yaml
+  │   │       ├── service.yaml
+  │   │       └── hpa.yaml (optional auto-scaling)
+  │   └── todo-backend/
+  │       ├── Chart.yaml
+  │       ├── values.yaml
+  │       └── templates/
+  │           ├── deployment.yaml
+  │           ├── service.yaml
+  │           └── configmap.yaml (non-secret config)
+  ├── manifests/               # Optional raw YAML if Helm not used
+  └── secrets/                 # Templates only; never commit real values
+
+/specs/infra/
+  ├── minikube-deployment.md   # Step-by-step local deployment guide
+  ├── helm-charts.md           # Helm chart design and configuration
+  ├── docker-gordon.md         # Dockerfile generation strategy (Gordon prompts)
+  └── ai-devops.md             # kubectl-ai and Kagent usage patterns
+```
+
+**Validation & Testing**:
+- Pods reach Running state and pass readiness probes
+- Frontend accessible via `minikube service` (NodePort URL works)
+- Backend health endpoint `/health` returns 200 OK
+- Chat endpoint responds with Cohere reply (verify COHERE_API_KEY secret mounted)
+- Database queries work (verify DATABASE_URL secret mounted and Neon accessible)
+- No pod crashes; logs clean (check `kubectl logs`)
+- User isolation enforced (attempt cross-user access → 403 Forbidden)
+
+**Demo Reliability**:
+- App fully functional after: `minikube start` → `kubectl create secret ...` → `helm install ...`
+- No manual configuration beyond secret creation
+- Single-command demo startup (document in README)
+- Dashboard view shows pods running, services healthy
+- Judges see: Minikube dashboard, kubectl output, app working end-to-end
 
 ## Security & Authentication (Foundation)
 
@@ -497,76 +594,77 @@ Before final submission:
 
 ## Sync Impact Report
 
-<!-- Generated: 2026-01-12 -->
+<!-- Generated: 2026-01-20 -->
 
 ### Version Change
-- **Old**: 1.0.0 (Phase II only)
-- **New**: 2.0.0 (Phase II + Phase III integration)
+- **Old**: 2.0.0 (Phase II + Phase III integration)
+- **New**: 2.1.0 (Phase II + Phase III + Phase IV Kubernetes deployment)
 
-### Rationale for MAJOR Version Bump
-- Phase III (AI chatbot) fundamentally expands scope and architecture
-- Cohere API integration introduces new security/operational concerns (API key management, rate limiting, prompt engineering)
-- MCP tools and agents introduce new governance (stateless tool design, tool isolation, agent orchestration)
-- Conversation/message persistence and user isolation rules extended to new tables
-- Frontend significantly extended with chatbot UI component
-- Backend significantly extended with Cohere service layer, chat endpoint, MCP tools
+### Rationale for MINOR Version Bump
+- Phase IV (Kubernetes/Docker/Helm orchestration) is **additive to existing Phases II–III** without breaking changes
+- New infrastructure principles govern containerization and local Minikube deployment
+- Zero rewrites of Phase II–III code; only new `/docker/` and `/k8s/` directories added
+- AI-assisted DevOps principles (Gordon, kubectl-ai, Kagent) introduce new tooling governance
+- Monorepo structure expanded to include infrastructure specifications and manifests
+- Version bump type: MINOR (new principles/sections, no removed principles, backward compatible)
 
 ### Modified Principles
 
 | Old Title | New Title | Changes |
 |-----------|-----------|---------|
-| I. Spec-Driven Development | I. Spec-Driven Development | Added Phase III specs requirement; clarified MCP/AI specs |
-| II. Strict User Isolation | II. Strict User Isolation | Extended to conversations/messages; added indexed user_id rule |
-| III. JWT Authentication | III. JWT-Based Stateless Authentication | Added Cohere API backend-only rule; clarified 403 Forbidden use case |
-| IV. Technology Stack | IV. Technology Stack Fidelity | Added Cohere SDK, MCP SDK, expanded backend/frontend stack |
-| V. Monorepo Structure | V. Modular Architecture & Monorepo Structure | Added `/agents/`, `/skills/` directories; clarified Phase II/III sharing |
-| VI. Testability | VI. Testability & Quality Gates | Added chatbot integration tests, Cohere mocking requirement |
-| VII. API Design | VII. API Design Standards | Added Phase III `/api/{user_id}/chat` endpoint spec |
-| VIII. Database Design | VIII. Database Design & Normalization | Added Conversation, Message tables; added tool_calls JSON field |
-| IX. Code Quality | IX. Code Quality & Simplicity (YAGNI) | Added prompt engineering simplicity rule |
-| X. Traceability | X. Traceability & Documentation | Clarified PHR routing; added Cohere decision ADR mention |
-| (New) | XI. AI & Agentic Workflow Governance | New principle governing Cohere API, MCP tools, agents, skills, prompt security |
+| V. Monorepo Structure | V. Modular Architecture & Monorepo Structure | Added `/docker/` and `/k8s/` directories; emphasized Phase IV non-invasiveness |
+
+### New Principles & Sections
+
+| Principle | Content | Scope |
+|-----------|---------|-------|
+| XII. Cloud-Native Containerization & Orchestration | Docker multi-stage builds, Kubernetes/Helm charts, Minikube deployment, secrets management, AI-assisted DevOps (Gordon, kubectl-ai, Kagent) | Phase IV infrastructure |
 
 ### Added Sections
 
-- XI. AI & Agentic Workflow Governance (Cohere, MCP, agents, skills, prompt security)
-- Updated "Security & Authentication" with Cohere API backend-only rule
-- Updated "API Specifications" with Phase III chat endpoint
-- Updated "Frontend Standards" with chatbot UI requirements
-- Updated "Backend Standards" with Cohere service layer, MCP tools, async Cohere calls
-- Updated "Testing Standards" with Cohere mocking, chatbot integration tests
-- Updated "Development Workflow" with chatbot-specific validation
-- Updated "Governance" with Cohere prompt quality compliance review
+- XII. Cloud-Native Containerization & Orchestration (Docker, Kubernetes, Helm, Minikube, secret management, AI DevOps, validation)
+- Updated monorepo structure with `/docker/` and `/k8s/` directories and `/specs/infra/` specifications
 
 ### Removed Sections
 
-- None (purely additive to Phase II foundation)
+- None (purely additive to Phases II–III foundation)
 
 ### Templates Requiring Updates
 
 | Template | Status | Notes |
 |----------|--------|-------|
-| `.specify/templates/spec-template.md` | ⚠ Pending | Add Phase III feature spec sections (intent parsing, tool calls, Cohere prompts) |
-| `.specify/templates/plan-template.md` | ⚠ Pending | Add Cohere integration planning section; MCP tool planning |
-| `.specify/templates/tasks-template.md` | ⚠ Pending | Add task types for Cohere prompt engineering, MCP tool impl, agent testing |
-| `/frontend/CLAUDE.md` | ⚠ Pending | Update with chatbot UI patterns, conversation persistence, shadcn/ui chat components |
-| `/backend/CLAUDE.md` | ⚠ Pending | Add Cohere service layer patterns, MCP tool implementation, async Cohere calls |
-| `/README.md` (root) | ⚠ Pending | Add Phase III feature overview, Cohere API key setup, architecture diagram |
+| `.specify/templates/spec-template.md` | ⚠ Pending | Add Phase IV infrastructure spec sections (Dockerfile design, Helm chart structure, Minikube config) |
+| `.specify/templates/plan-template.md` | ⚠ Pending | Add infrastructure planning section; Docker/Helm/Minikube design decisions |
+| `.specify/templates/tasks-template.md` | ⚠ Pending | Add task types for Dockerfile creation, Helm chart implementation, k8s manifest generation, validation |
+| `/README.md` (root) | ⚠ Pending | Add Phase IV overview, Minikube setup instructions, demo walkthrough, Gordon/kubectl-ai usage examples |
+| `/frontend/CLAUDE.md` | ✅ No change | Phase IV uses existing Next.js code; no frontend-specific guidance needed |
+| `/backend/CLAUDE.md` | ✅ No change | Phase IV uses existing FastAPI code; no backend-specific guidance needed |
 
 ### Follow-Up TODOs
 
-- [ ] Create/update spec templates to include Phase III sections (intent parsing, tool calls, conversation persistence)
-- [ ] Create Cohere service layer template with rate limiting, error handling, tool orchestration patterns
-- [ ] Create MCP tool template (stateless, user-isolated, DB-backed)
-- [ ] Create agent template (chatbot-orchestrator, conversation-manager, etc.)
-- [ ] Initialize agents in `/agents/` and skills in `/skills/`
-- [ ] Extend database schema with Conversation, Message tables
-- [ ] Implement chat endpoint (`routes/chat.py`) with Cohere integration
-- [ ] Implement MCP tools (add_task, list_tasks, complete_task, delete_task, update_task)
-- [ ] Create chatbot UI component in `/frontend/app/chat/`
-- [ ] Set up Cohere API key in `.env.example` and CI/CD secrets
-- [ ] Create Cohere mocking library for unit/integration tests
+- [ ] Create `specs/infra/minikube-deployment.md` — step-by-step local deployment guide with all secrets, image build, Helm install commands
+- [ ] Create `specs/infra/helm-charts.md` — design document for frontend & backend Helm charts (structure, values, templates)
+- [ ] Create `specs/infra/docker-gordon.md` — Dockerfile generation strategy using Gordon AI (prompts, optimization patterns)
+- [ ] Create `specs/infra/ai-devops.md` — kubectl-ai and Kagent usage patterns (manifest generation, debugging, cluster health)
+- [ ] Create `/docker/frontend.Dockerfile` — multi-stage Node 20-alpine → nginx build
+- [ ] Create `/docker/backend.Dockerfile` — multi-stage Python 3.12-slim → uvicorn build
+- [ ] Create `/k8s/helm-charts/todo-frontend/` — full Helm chart structure and templates
+- [ ] Create `/k8s/helm-charts/todo-backend/` — full Helm chart structure and templates
+- [ ] Create `/k8s/secrets/` — secret templates (never commit real values)
+- [ ] Update `/README.md` — add Phase IV section with Minikube + Helm demo steps
+- [ ] Create `.env.example` updates — ensure DOCKER_* and K8S_* variables documented
+- [ ] Validate deployment: pods running, frontend accessible, chatbot working, DB connected
+- [ ] Demonstrate AI tool usage: show Gordon Dockerfile prompts, kubectl-ai manifest generation, Kagent cluster analysis in commit history
+
+### Backward Compatibility
+
+- **✅ No breaking changes**: Phase II–III code untouched; Phase IV is purely additive infrastructure
+- **✅ Development workflow unchanged**: Developers can still `npm run dev` and `python -m uvicorn` locally without Kubernetes
+- **✅ Specs remain the same**: Existing Phase II–III specs in `/specs/` apply without modification
+- **✅ Database unchanged**: Neon PostgreSQL connection via `DATABASE_URL` secret in Kubernetes; same as local `.env`
+- **✅ Authentication unchanged**: JWT via Better Auth; same `BETTER_AUTH_SECRET` used by local and Kubernetes deployments
+- **✅ API endpoints unchanged**: Phase II CRUD and Phase III chat endpoints work identically
 
 ---
 
-**Version**: 2.0.0 | **Ratified**: 2026-01-12 | **Last Amended**: 2026-01-12
+**Version**: 2.1.0 | **Ratified**: 2026-01-12 | **Last Amended**: 2026-01-20
