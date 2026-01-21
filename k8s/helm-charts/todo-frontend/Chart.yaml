@@ -1,0 +1,30 @@
+apiVersion: v2
+name: todo-frontend
+description: Helm chart for Todo AI Chatbot Next.js frontend application
+type: application
+
+# Chart version (semantic versioning)
+version: 1.0.0
+
+# Application version (version of the application this chart deploys)
+appVersion: "1.0.0"
+
+# Chart metadata
+keywords:
+  - todo
+  - nextjs
+  - frontend
+  - react
+  - kubernetes
+  - helm
+
+home: https://github.com/todo-project/todo-app
+sources:
+  - https://github.com/todo-project/todo-app/tree/Phase3
+
+maintainers:
+  - name: Todo Project Team
+    email: team@example.com
+
+# Chart dependencies (none for this MVP)
+dependencies: []

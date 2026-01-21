@@ -52,15 +52,15 @@
 
 ### Research & Specs for User Story 1
 
-- [ ] T011 Use Gordon AI to research and document optimal multi-stage Dockerfile for Next.js frontend in specs/infra/docker-gordon.md (include example prompts)
-- [ ] T012 Use Gordon AI to research and document optimal multi-stage Dockerfile for FastAPI backend in specs/infra/docker-gordon.md (include example prompts)
-- [ ] T013 Create specs/infra/minikube-deployment.md: step-by-step startup and deployment flow with all commands
-- [ ] T014 Create specs/infra/helm-charts.md: Helm chart structure design (Chart.yaml, values.yaml, templates/, probe configuration)
+- [x] T011 Use Gordon AI to research and document optimal multi-stage Dockerfile for Next.js frontend in specs/infra/docker-gordon.md (include example prompts)
+- [x] T012 Use Gordon AI to research and document optimal multi-stage Dockerfile for FastAPI backend in specs/infra/docker-gordon.md (include example prompts)
+- [x] T013 Create specs/infra/minikube-deployment.md: step-by-step startup and deployment flow with all commands (→ k8s/DEMO.md)
+- [x] T014 Create specs/infra/helm-charts.md: Helm chart structure design (Chart.yaml, values.yaml, templates/, probe configuration)
 
 ### Docker Implementation for User Story 1
 
-- [ ] T015 [P] Generate frontend Dockerfile using Gordon AI: `docker/frontend.Dockerfile` (Node 20-alpine build → nginx:alpine, non-root UID 1000, < 200MB, port 80)
-- [ ] T016 [P] Generate backend Dockerfile using Gordon AI: `docker/backend.Dockerfile` (Python 3.12-slim + UV → uvicorn, non-root UID 1000, < 400MB, port 8000)
+- [x] T015 [P] Generate frontend Dockerfile using Gordon AI: `docker/frontend.Dockerfile` (Node 20-alpine build → nginx:alpine, non-root UID 1000, < 200MB, port 80)
+- [x] T016 [P] Generate backend Dockerfile using Gordon AI: `docker/backend.Dockerfile` (Python 3.12-slim + UV → uvicorn, non-root UID 1000, < 400MB, port 8000)
 - [ ] T017 Build frontend Docker image locally: `docker build -f docker/frontend.Dockerfile -t todo-frontend:latest .`
 - [ ] T018 Build backend Docker image locally: `docker build -f docker/backend.Dockerfile -t todo-backend:latest .`
 - [ ] T019 Verify frontend image size < 200MB: `docker images | grep todo-frontend`
@@ -70,22 +70,22 @@
 
 ### Secrets & Configuration for User Story 1
 
-- [ ] T023 Create `k8s/secrets/app-secrets-template.yaml` (template with placeholder values, never commit real secrets)
-- [ ] T024 Document secret creation procedure in k8s/DEMO.md: `kubectl create secret generic app-secrets --from-literal=...`
-- [ ] T025 Verify secret mounting strategy in Helm templates: `envFrom: - secretRef: name: app-secrets`
+- [x] T023 Create `k8s/secrets/app-secrets-template.yaml` (template with placeholder values, never commit real secrets)
+- [x] T024 Document secret creation procedure in k8s/DEMO.md: `kubectl create secret generic app-secrets --from-literal=...`
+- [x] T025 Verify secret mounting strategy in Helm templates: `envFrom: - secretRef: name: app-secrets`
 
 ### Helm Chart Generation for User Story 1
 
-- [ ] T026 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/Chart.yaml` (name, version, description, appVersion)
-- [ ] T027 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/values.yaml` (replicaCount, image, service type ClusterIP, port 8000, resources)
-- [ ] T028 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/templates/deployment.yaml` (Deployment with readiness/liveness probes, envFrom secret, port 8000)
-- [ ] T029 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/templates/service.yaml` (ClusterIP service, port 8000)
-- [ ] T030 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/templates/_helpers.tpl` (standard Helm helpers)
-- [ ] T031 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/Chart.yaml` (name, version, description, appVersion)
-- [ ] T032 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/values.yaml` (replicaCount, image, service type NodePort, port 80, resources)
-- [ ] T033 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/templates/deployment.yaml` (Deployment with readiness/liveness probes, envFrom secret, port 80)
-- [ ] T034 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/templates/service.yaml` (NodePort service, port 80, nodePort 30000)
-- [ ] T035 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/templates/_helpers.tpl` (standard Helm helpers)
+- [x] T026 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/Chart.yaml` (name, version, description, appVersion)
+- [x] T027 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/values.yaml` (replicaCount, image, service type ClusterIP, port 8000, resources)
+- [x] T028 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/templates/deployment.yaml` (Deployment with readiness/liveness probes, envFrom secret, port 8000)
+- [x] T029 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/templates/service.yaml` (ClusterIP service, port 8000)
+- [x] T030 Use kubectl-ai to generate `k8s/helm-charts/todo-backend/templates/_helpers.tpl` (standard Helm helpers)
+- [x] T031 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/Chart.yaml` (name, version, description, appVersion)
+- [x] T032 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/values.yaml` (replicaCount, image, service type NodePort, port 80, resources)
+- [x] T033 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/templates/deployment.yaml` (Deployment with readiness/liveness probes, envFrom secret, port 80)
+- [x] T034 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/templates/service.yaml` (NodePort service, port 80, nodePort 30000)
+- [x] T035 Use kubectl-ai to generate `k8s/helm-charts/todo-frontend/templates/_helpers.tpl` (standard Helm helpers)
 
 ### Helm Chart Validation for User Story 1
 

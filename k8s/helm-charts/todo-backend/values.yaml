@@ -1,0 +1,186 @@
+# Default values for todo-backend Helm chart
+# Generated via spec-driven development (T027)
+# These values can be overridden with helm install --values custom-values.yaml
+
+# ============================================================================
+# Deployment Configuration
+# ============================================================================
+
+# Number of pod replicas
+replicaCount: 1
+
+# Docker image configuration
+image:
+  # Image repository (docker image name)
+  repository: todo-backend
+
+  # Image pull policy: Always, IfNotPresent, Never
+  # Never: Use local Minikube image (no registry pull)
+  pullPolicy: Never
+
+  # Image tag/version
+  tag: "latest"
+
+# Image pull secrets (for private registries)
+# Not needed for local Minikube development
+imagePullSecrets: []
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+
+# Container security context
+securityContext:
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# ============================================================================
+# Container Configuration
+# ============================================================================
+
+# Container port
+containerPort: 8000
+
+# Environment variables (non-sensitive)
+env:
+  DEBUG: "false"
+  APP_ENV: "development"
+
+# Kubernetes Secret reference for sensitive environment variables
+# Secret must be created before helm install:
+# kubectl create secret generic app-secrets \
+#   --from-literal=DATABASE_URL=... \
+#   --from-literal=BETTER_AUTH_SECRET=... \
+#   --from-literal=COHERE_API_KEY=...
+secrets:
+  name: app-secrets
+
+# ============================================================================
+# Health Checks (Probes)
+# ============================================================================
+
+probes:
+  # Readiness probe: determines if pod can receive traffic
+  readiness:
+    enabled: true
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 30
+    successThreshold: 1
+    failureThreshold: 3
+
+  # Liveness probe: determines if pod should be restarted
+  liveness:
+    enabled: true
+    initialDelaySeconds: 15
+    timeoutSeconds: 3
+    periodSeconds: 30
+    successThreshold: 1
+    failureThreshold: 3
+
+# ============================================================================
+# Resource Management
+# ============================================================================
+
+# Resource requests (guaranteed to pod)
+resources:
+  requests:
+    # CPU: 100 millicores (0.1 CPU)
+    cpu: 100m
+    # Memory: 256 MiB
+    memory: 256Mi
+
+  # Resource limits (maximum pod can use)
+  limits:
+    # CPU: 500 millicores (0.5 CPU)
+    cpu: 500m
+    # Memory: 512 MiB
+    memory: 512Mi
+
+# ============================================================================
+# Service Configuration
+# ============================================================================
+
+service:
+  # Service type: ClusterIP, NodePort, LoadBalancer
+  # ClusterIP: Only accessible within cluster (for backend)
+  type: ClusterIP
+
+  # Service port (external)
+  port: 8000
+
+  # Container port (internal)
+  targetPort: 8000
+
+  # Service annotations
+  annotations: {}
+
+# ============================================================================
+# Deployment Strategy
+# ============================================================================
+
+# Rolling update strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Pod disruption budget (minimum pods that must stay running)
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ============================================================================
+# Scaling & Auto-scaling
+# ============================================================================
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# ============================================================================
+# Advanced Configuration
+# ============================================================================
+
+# Node affinity (which nodes to schedule pods on)
+affinity: {}
+
+# Tolerations (schedule on nodes with taints)
+tolerations: []
+
+# Node selector (schedule on specific nodes)
+nodeSelector: {}
+
+# DNS policy
+dnsPolicy: ClusterFirst
+
+# Termination grace period (seconds to wait before force killing pod)
+terminationGracePeriodSeconds: 30
+
+# ============================================================================
+# Labels & Selectors
+# ============================================================================
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: todo-backend
+  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/managed-by: helm

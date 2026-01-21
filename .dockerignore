@@ -1,0 +1,76 @@
+# Global .dockerignore for Docker builds
+# Prevents large/unnecessary files from being sent to Docker daemon
+
+# Git & Version Control
+.git
+.gitignore
+.gitattributes
+.github/
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+.docker/
+
+# Kubernetes & Infrastructure
+k8s/
+.kubernetes/
+helm/
+*.yaml
+*.yml
+
+# Development & Build Artifacts
+node_modules/
+.next/
+dist/
+build/
+out/
+.cache/
+.turbo/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.env*
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.iml
+
+# Testing & Coverage
+.pytest_cache/
+coverage/
+.nyc_output/
+*.lcov
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+Jenkinsfile
+
+# Documentation
+docs/
+README.md
+*.md
+
+# Misc
+.specify/
+specs/
+history/
+*.log
+.env
+.env.local
+.env.example
+
+# Keep these directories
+!backend/
+!frontend/
+!public/
