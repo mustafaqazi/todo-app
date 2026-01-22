@@ -12,18 +12,12 @@ WORKDIR /tmp
 # Install UV package manager (fast Python dependency resolution)
 RUN pip install --no-cache-dir uv
 
-# Copy dependency files
-COPY pyproject.toml uv.lock* ./
+# Copy dependency files from backend directory
+COPY backend/requirements.txt ./
 
-# Install dependencies to system site-packages (for better layer reuse)
+# Install dependencies from requirements.txt
 # This step can be cached separately from application code
-RUN uv pip install \
-    --python /usr/local/bin/python3.12 \
-    --system-site-packages \
-    --no-cache-dir \
-    -r /tmp/pyproject.toml || \
-    # Fallback if uv.lock doesn't exist
-    pip install --no-cache-dir -r /tmp/pyproject.toml
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ============================================================================
 # RUNTIME STAGE: Minimal FastAPI runtime
@@ -39,10 +33,11 @@ WORKDIR /app
 # Copy installed dependencies from builder stage
 # This keeps the final image minimal (no build tools)
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
+# Copy application code from backend directory
 # Place after dependencies to leverage cache (code changes more often)
-COPY --chown=appuser:appuser . .
+COPY --chown=appuser:appuser backend/ .
 
 # Set Python environment variables
 # PYTHONUNBUFFERED: print logs immediately (important for Docker)
@@ -67,7 +62,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 # 0.0.0.0: Listen on all interfaces (required for Kubernetes)
 # --port 8000: Standard HTTP port
 # --timeout-keep-alive 5: Shorter keepalive for Minikube
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ============================================================================
 # Image Metadata

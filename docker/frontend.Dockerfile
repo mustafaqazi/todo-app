@@ -9,15 +9,16 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files first (for layer caching)
-COPY package*.json ./
-COPY yarn.lock* pnpm-lock.yaml* ./
+# Copy dependency files from frontend directory
+COPY frontend/package*.json ./
+COPY frontend/yarn.lock* frontend/pnpm-lock.yaml* ./
 
-# Install dependencies using npm (or yarn/pnpm if lockfile exists)
-RUN npm ci
+# Install dependencies
+# Use npm install to ensure all dependencies are resolved
+RUN npm install --legacy-peer-deps
 
-# Copy application code
-COPY . .
+# Copy application code from frontend directory
+COPY frontend/ .
 
 # Build Next.js application
 # This generates .next directory with optimized artifacts
@@ -42,10 +43,9 @@ COPY --from=builder /app/node_modules /usr/share/nginx/html/node_modules
 # Copy nginx configuration (serve Next.js with SPA routing)
 # This config ensures all routes are served by Next.js (SPA)
 COPY <<'EOF' /etc/nginx/nginx.conf
-user appuser;
 worker_processes auto;
-error_log /var/log/nginx/error.log warn;
-pid /var/run/nginx.pid;
+error_log /tmp/nginx_error.log warn;
+pid /tmp/nginx.pid;
 
 events {
     worker_connections 1024;
@@ -55,11 +55,18 @@ http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
+    # Use /tmp for cache directories (writable by non-root)
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path /tmp/proxy_temp;
+    fastcgi_temp_path /tmp/fastcgi_temp;
+    uwsgi_temp_path /tmp/uwsgi_temp;
+    scgi_temp_path /tmp/scgi_temp;
+
     log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                     '$status $body_bytes_sent "$http_referer" '
                     '"$http_user_agent" "$http_x_forwarded_for"';
 
-    access_log /var/log/nginx/access.log main;
+    access_log /tmp/nginx_access.log main;
 
     sendfile on;
     tcp_nopush on;
@@ -112,6 +119,10 @@ http {
     }
 }
 EOF
+
+# Set permissions for nginx html directory (required for non-root user)
+# Using /tmp for all writable directories (pid, logs, cache) so no extra setup needed
+RUN chown -R appuser:appuser /usr/share/nginx/html
 
 # Copy application files with correct ownership
 COPY --chown=appuser:appuser . .
